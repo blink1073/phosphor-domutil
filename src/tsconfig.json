@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "declaration": true,
+    "noImplicitAny": true,
+    "noEmitOnError": true,
+    "sourceMap": true,
+    "module": "commonjs",
+    "target": "ES5",
+    "outDir": "../lib"
+  },
+  "files": [
+    "../node_modules/phosphor-disposable/lib/phosphor-disposable.d.ts",
+    "index.ts"
+  ]
+}
