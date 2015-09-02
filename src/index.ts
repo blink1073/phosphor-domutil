@@ -70,8 +70,8 @@ function overrideCursor(cursor: string): IDisposable {
  * obj.height = 100;
  * document.body.appendChild(obj);
  *
- * hitTest( obj, 50, 50 ); // true
- * hitTest( obj, 150, 150 ); // false
+ * hitTest(obj, 50, 50); // true
+ * hitTest(obj, 150, 150); // false
  * ```
  *
  * #### Notes
