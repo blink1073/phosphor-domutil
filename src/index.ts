@@ -68,7 +68,7 @@ function overrideCursor(cursor: string): IDisposable {
  * obj.style.top = 0;
  * obj.width = 100;
  * obj.height = 100;
- * document.body.appendChild( obj );
+ * document.body.appendChild(obj);
  *
  * hitTest( obj, 50, 50 ); // true
  * hitTest( obj, 150, 150 ); // false
@@ -180,9 +180,9 @@ interface ISizeLimits {
  * var node = document.createElement('img');
  * node.width = 100;
  * node.height = 100;
- * document.body.appendChild( node );
+ * document.body.appendChild(node);
  *
- * var sizing = boxSizing( node );
+ * var sizing = boxSizing(node);
  * ```
  *
  * #### Notes
@@ -228,9 +228,9 @@ function boxSizing(node: HTMLElement): IBoxSizing {
  * var obj = document.createElement('img');
  * obj.height = 100;
  * obj.width = 100;
- * document.body.appendNode( obj );
+ * document.body.appendNode(obj);
  *
- * var limits = sizeLimits( obj );
+ * var limits = sizeLimits(obj);
  * ```
  *
  * #### Notes

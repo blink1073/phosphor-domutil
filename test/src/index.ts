@@ -47,12 +47,12 @@ describe('phosphor-domutil', () => {
       obj.style.top = '0';
       obj.width = 100;
       obj.height = 100;
-      document.body.appendChild( obj );
+      document.body.appendChild(obj);
 
-      var inside = hitTest( obj, 50, 50 );
+      var inside = hitTest(obj, 50, 50);
       expect(inside).to.be(true);
 
-      var outside = hitTest( obj, 150, 150 );
+      var outside = hitTest(obj, 150, 150);
       expect(outside).to.be(false);
     });
 
@@ -65,25 +65,25 @@ describe('phosphor-domutil', () => {
       obj.height = 100;
       document.body.appendChild(obj);
 
-      var top_left_corner = hitTest( obj, 0, 0 );
+      var top_left_corner = hitTest(obj, 0, 0);
       expect(top_left_corner).to.be(true);
 
-      var top_right_corner = hitTest( obj, 100, 0 );
+      var top_right_corner = hitTest(obj, 100, 0);
       expect(top_right_corner).to.be(false);
 
-      var inside_top_right = hitTest( obj, 99, 0 );
+      var inside_top_right = hitTest(obj, 99, 0);
       expect(inside_top_right).to.be(true);
 
-      var bottom_left_corner = hitTest( obj, 0, 100 );
+      var bottom_left_corner = hitTest(obj, 0, 100);
       expect(bottom_left_corner).to.be(false);
 
-      var inside_bottom_left = hitTest( obj, 0, 99 );
+      var inside_bottom_left = hitTest(obj, 0, 99);
       expect(inside_bottom_left).to.be(true);
 
-      var bottom_right_corner = hitTest( obj, 100, 100 );
+      var bottom_right_corner = hitTest(obj, 100, 100);
       expect(bottom_right_corner).to.be(false);
 
-      var inside_bottom_right = hitTest( obj, 99, 99 );
+      var inside_bottom_right = hitTest(obj, 99, 99);
       expect(inside_bottom_right).to.be(true);
     });
 
@@ -105,9 +105,9 @@ describe('phosphor-domutil', () => {
       obj.style.paddingBottom = '15px';
       obj.width = 100;
       obj.height = 100;
-      document.body.appendChild( obj );
+      document.body.appendChild(obj);
 
-      var sizing = boxSizing( obj );
+      var sizing = boxSizing(obj);
 
       expect(sizing.borderTop).to.be(10);
       expect(sizing.borderLeft).to.be(10);
@@ -136,9 +136,9 @@ describe('phosphor-domutil', () => {
       obj.style.maxHeight = '120px';
       obj.height = 100;
       obj.width = 100;
-      document.body.appendChild( obj );
+      document.body.appendChild(obj);
 
-      var limits = sizeLimits( obj );
+      var limits = sizeLimits(obj);
 
       expect(limits.minWidth).to.be(90);
       expect(limits.minHeight).to.be(90);
