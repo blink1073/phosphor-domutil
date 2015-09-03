@@ -3,11 +3,9 @@
   "version": "0.9.1",
   "description": "Utilities for working with the DOM.",
   "main": "lib/index.js",
-  "typescript": {
-    "definition": "lib/phosphor-domutil.d.ts"
-  },
+  "typings": "lib/index.d.ts",
   "dependencies": {
-    "phosphor-disposable": "^1.0.1"
+    "phosphor-disposable": "^1.0.2"
   },
   "devDependencies": {
     "browserify-css": "^0.6.1",
@@ -26,16 +24,15 @@
     "karma-mocha-reporter": "^1.1.1",
     "mocha": "^2.2.5",
     "rimraf": "^2.4.2",
-    "typedoc": "^0.3.8",
-    "typescript": "^1.5.3"
+    "typedoc": "git://github.com/phosphorjs/typedoc.git",
+    "typescript": "1.6.0-beta"
   },
   "scripts": {
     "clean": "rimraf lib && rimraf test/build && rimraf test/coverage",
     "build:src": "tsc --project src",
-    "build:dts": "node scripts/dtsbundle.js",
     "build:test": "tsc --project test/src",
     "build:css": "node scripts/copycss.js",
-    "build": "npm run build:src && npm run build:dts && npm run build:test && npm run build:css",
+    "build": "npm run build:src && npm run build:test && npm run build:css",
     "docs": "rimraf docs/api && typedoc --options scripts/tdoptions.json",
     "prepublish": "npm run build",
     "test:chrome": "karma start --browsers=Chrome test/karma.conf.js",
@@ -51,7 +48,7 @@
   "files": [
     "lib/index.js",
     "lib/index.css",
-    "lib/phosphor-domutil.d.ts"
+    "lib/index.d.ts"
   ],
   "keywords": [
     "ui",
