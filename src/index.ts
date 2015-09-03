@@ -28,7 +28,10 @@ var overrideToken: any = null;
 /**
  * Override the cursor for the entire document.
  *
- * Returns an IDisposable which will clear the override.
+ * @param cursor - The string representing the cursor style.
+ *
+ * @returns An object conforming to the IDisposable interface which will clear
+ * the override.
  */
 export
 function overrideCursor(cursor: string): IDisposable {
@@ -48,6 +51,31 @@ function overrideCursor(cursor: string): IDisposable {
 
 /**
  * Test whether a client position lies within a node.
+ *
+ * @param node - The HTMLElement on which to test against.
+ *
+ * @param x - The x co-ordinate of the position to hit test.
+ *
+ * @param y - The y co-ordinate of the position to hit test.
+ *
+ * @returns A boolean, true if the x-y co-ordinates are within the node.
+ *
+ * #### Example
+ * ```typescript
+ * var obj = document.createElement('img');
+ * obj.style.position = 'absolute';
+ * obj.style.left = 0;
+ * obj.style.top = 0;
+ * obj.width = 100;
+ * obj.height = 100;
+ * document.body.appendChild(obj);
+ *
+ * hitTest(obj, 50, 50); // true
+ * hitTest(obj, 150, 150); // false
+ * ```
+ *
+ * #### Notes
+ * This has `O(1)` complexity.
  */
 export
 function hitTest(node: HTMLElement, x: number, y: number): boolean {
@@ -142,6 +170,23 @@ interface ISizeLimits {
 
 /**
  * Compute the box sizing for a DOM node.
+ *
+ * @param node - The HTMLElement for which to compute the box sizing.
+ *
+ * @returns An object conforming to the IBoxSizing interface.
+ *
+ * #### Example
+ * ```typescript
+ * var node = document.createElement('img');
+ * node.width = 100;
+ * node.height = 100;
+ * document.body.appendChild(node);
+ *
+ * var sizing = boxSizing(node);
+ * ```
+ *
+ * #### Notes
+ * This has `O(1)` complexity.
  */
 export
 function boxSizing(node: HTMLElement): IBoxSizing {
@@ -173,6 +218,24 @@ function boxSizing(node: HTMLElement): IBoxSizing {
 
 /**
  * Compute the size limits for a DOM node.
+ *
+ * @param node - The node for which to compute the size limits.
+ *
+ * @returns An object conforming to the ISizeLimits interface.
+ *
+ * #### Example
+ * ```typescript
+ * var obj = document.createElement('img');
+ * obj.height = 100;
+ * obj.width = 100;
+ * document.body.appendNode(obj);
+ *
+ * var limits = sizeLimits(obj);
+ * ```
+ *
+ * #### Notes
+ * This has `O(1)` complexity.
+ *
  */
 export
 function sizeLimits(node: HTMLElement): ISizeLimits {

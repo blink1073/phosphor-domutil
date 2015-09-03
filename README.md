@@ -85,3 +85,71 @@ Usage Examples
 
 **Note:** This module is fully compatible with Node/Babel/ES6/ES5. Simply
 omit the type declarations when using a language other than TypeScript.
+
+**overrideCursor**
+
+```typescript
+import {
+  overrideCursor
+} from 'phosphor-domutil';
+
+// overrideCursor returns a `disposable`
+var cursorDisposable = overrideCursor('wait');
+
+// when you want to stop overriding the cursor, just dispose of it.
+cursorDisposable.dispose();
+```
+
+**hitTest**
+
+```typescript
+import {
+  hitTest
+} from 'phosphor-domutil';
+
+// Set up a dummy test object, 100x100 at (0,0)
+var obj = document.createElement('img');
+obj.style.position = 'absolute';
+obj.style.left = '0px';
+obj.style.top = '0px';
+obj.width = 100;
+obj.height = 100;
+document.body.appendChild(obj);
+
+hitTest(obj, 50, 50); // true
+hitTest(obj, 150, 150); // false
+```
+
+**boxSizing**
+
+```typescript
+import {
+  boxSizing
+} from 'phosphor-domutil';
+
+// Set up a dummy object
+var obj = document.createElement('img');
+obj.style.position = 'absolute';
+obj.style.borderTop = "solid 10px black";
+document.body.appendChild(obj);
+
+var sizing = boxSizing(obj);
+console.log(sizing.borderTop); // 10
+```
+
+**sizeLimits**
+
+```typescript
+import {
+  sizeLimits
+} from 'phosphor-domutil';
+
+// Set up dummy object
+var obj = document.createElement('img');
+obj.style.position = 'absolute';
+obj.style.minWidth = '90px';
+document.body.appendChild(obj);
+
+var limits = sizeLimits(obj);
+console.log(limits.minWidth); // 90
+```
