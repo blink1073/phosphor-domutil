@@ -11,18 +11,21 @@ import {
   DisposableDelegate, IDisposable
 } from 'phosphor-disposable';
 
+import './index.css';
+
 
 /**
- * The class name added to the document body on cursor override.
+ * `p-mod-override-cursor`: the class name added to the document body
+ *   during cursor override.
  */
 export
 const OVERRIDE_CURSOR_CLASS = 'p-mod-override-cursor';
 
 
 /**
- * The token object for the current override.
+ * The id for the active cursor override.
  */
-var overrideToken: any = null;
+var overrideID = 0;
 
 
 /**
@@ -30,18 +33,20 @@ var overrideToken: any = null;
  *
  * @param cursor - The string representing the cursor style.
  *
- * @returns An object conforming to the IDisposable interface which will clear
- * the override.
+ * @returns A disposable which will clear the override when disposed.
+ *
+ * #### Notes
+ * The most recent call to `overrideCursor` takes precendence. Disposing
+ * an old override is a no-op and will not effect the current override.
  */
 export
 function overrideCursor(cursor: string): IDisposable {
-  var token = overrideToken = <any>{};
+  var id = ++overrideID;
   var body = document.body;
   body.style.cursor = cursor;
   body.classList.add(OVERRIDE_CURSOR_CLASS);
   return new DisposableDelegate(() => {
-    if (token === overrideToken) {
-      overrideToken = null;
+    if (id === overrideID) {
       body.style.cursor = '';
       body.classList.remove(OVERRIDE_CURSOR_CLASS);
     }
@@ -52,13 +57,13 @@ function overrideCursor(cursor: string): IDisposable {
 /**
  * Test whether a client position lies within a node.
  *
- * @param node - The HTMLElement on which to test against.
+ * @param node - The DOM node of interest.
  *
- * @param x - The x co-ordinate of the position to hit test.
+ * @param clientX - The client X coordinate of interest.
  *
- * @param y - The y co-ordinate of the position to hit test.
+ * @param clientY - The client Y coordinate of interest.
  *
- * @returns A boolean, true if the x-y co-ordinates are within the node.
+ * @returns `true` if the node covers the position, `false` otherwise.
  *
  * #### Example
  * ```typescript
@@ -70,17 +75,19 @@ function overrideCursor(cursor: string): IDisposable {
  * obj.height = 100;
  * document.body.appendChild(obj);
  *
- * hitTest(obj, 50, 50); // true
+ * hitTest(obj, 50, 50);   // true
  * hitTest(obj, 150, 150); // false
  * ```
- *
- * #### Notes
- * This has `O(1)` complexity.
  */
 export
-function hitTest(node: HTMLElement, x: number, y: number): boolean {
+function hitTest(node: HTMLElement, clientX: number, clientY: number): boolean {
   var rect = node.getBoundingClientRect();
-  return x >= rect.left && x < rect.right && y >= rect.top && y < rect.bottom;
+  return (
+    clientX >= rect.left &&
+    clientX < rect.right &&
+    clientY >= rect.top &&
+    clientY < rect.bottom
+  );
 }
 
 
@@ -142,51 +149,22 @@ interface IBoxSizing {
 
 
 /**
- * The size limits for a DOM node.
- */
-export
-interface ISizeLimits {
-  /**
-   * The minimum width, in pixels.
-   */
-  minWidth: number;
-
-  /**
-   * The minimum height, in pixels.
-   */
-  minHeight: number;
-
-  /**
-   * The maximum width, in pixels.
-   */
-  maxWidth: number;
-
-  /**
-   * The maximum height, in pixels.
-   */
-  maxHeight: number;
-}
-
-
-/**
  * Compute the box sizing for a DOM node.
  *
- * @param node - The HTMLElement for which to compute the box sizing.
+ * @param node - The DOM node for which to compute the box sizing.
  *
- * @returns An object conforming to the IBoxSizing interface.
+ * @returns The box sizing data for the specified DOM node.
  *
  * #### Example
  * ```typescript
- * var node = document.createElement('img');
- * node.width = 100;
- * node.height = 100;
+ * var node = document.createElement('div');
  * document.body.appendChild(node);
  *
  * var sizing = boxSizing(node);
+ * sizing.borderLeft;     // 0
+ * sizing.paddingBottom;  // 0
+ * // etc...
  * ```
- *
- * #### Notes
- * This has `O(1)` complexity.
  */
 export
 function boxSizing(node: HTMLElement): IBoxSizing {
@@ -217,25 +195,49 @@ function boxSizing(node: HTMLElement): IBoxSizing {
 
 
 /**
+ * The size limits for a DOM node.
+ */
+export
+interface ISizeLimits {
+  /**
+   * The minimum width, in pixels.
+   */
+  minWidth: number;
+
+  /**
+   * The minimum height, in pixels.
+   */
+  minHeight: number;
+
+  /**
+   * The maximum width, in pixels.
+   */
+  maxWidth: number;
+
+  /**
+   * The maximum height, in pixels.
+   */
+  maxHeight: number;
+}
+
+
+/**
  * Compute the size limits for a DOM node.
  *
  * @param node - The node for which to compute the size limits.
  *
- * @returns An object conforming to the ISizeLimits interface.
+ * @returns The size limit data for the specified DOM node.
  *
  * #### Example
  * ```typescript
- * var obj = document.createElement('img');
- * obj.height = 100;
- * obj.width = 100;
- * document.body.appendNode(obj);
+ * var node = document.createElement('div');
+ * document.body.appendNode(node);
  *
- * var limits = sizeLimits(obj);
+ * var limits = sizeLimits(node);
+ * limits.minWidth;   // 0
+ * limits.maxHeight;  // Infinity
+ * // etc...
  * ```
- *
- * #### Notes
- * This has `O(1)` complexity.
- *
  */
 export
 function sizeLimits(node: HTMLElement): ISizeLimits {
