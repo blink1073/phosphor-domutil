@@ -1,6 +1,6 @@
 {
   "name": "phosphor-domutil",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Utilities for working with the DOM.",
   "main": "lib/index.js",
   "typescript": {
