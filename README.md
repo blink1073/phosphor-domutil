@@ -94,10 +94,10 @@ import {
 } from 'phosphor-domutil';
 
 // overrideCursor returns a `disposable`
-var delegate = overrideCursor('wait');
+var cursorDisposable = overrideCursor('wait');
 
 // when you want to stop overriding the cursor, just dispose of it.
-delegate.dispose();
+cursorDisposable.dispose();
 ```
 
 **hitTest**
