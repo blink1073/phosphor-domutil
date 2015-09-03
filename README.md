@@ -114,7 +114,6 @@ override.dispose();
 ```typescript
 import { hitTest } from 'phosphor-domutil';
 
-// Set up a dummy test node
 var div = document.createElement('div');
 div.style.position = 'absolute';
 div.style.left = '0px';
@@ -132,14 +131,13 @@ hitTest(div, 150, 150); // false
 ```typescript
 import { boxSizing } from 'phosphor-domutil';
 
-// Set up a dummy test node
 var div = document.createElement('div');
-div.style.position = 'absolute';
 div.style.borderTop = 'solid 10px black';
 document.body.appendChild(div);
 
 var sizing = boxSizing(div);
-sizing.borderTop;  // 10
+sizing.borderTop;    // 10
+sizing.paddingLeft;  // 0
 // etc...
 ```
 
@@ -148,13 +146,12 @@ sizing.borderTop;  // 10
 ```typescript
 import { sizeLimits } from 'phosphor-domutil';
 
-// Set up dummy test node
 var div = document.createElement('div');
-div.style.position = 'absolute';
 div.style.minWidth = '90px';
 document.body.appendChild(div);
 
 var limits = sizeLimits(div);
-limits.minWidth;  // 90
+limits.minWidth;   // 90
+limits.maxHeight;  // Infinity
 // etc...
 ```

@@ -38,6 +38,17 @@ var overrideID = 0;
  * #### Notes
  * The most recent call to `overrideCursor` takes precendence. Disposing
  * an old override is a no-op and will not effect the current override.
+ *
+ * #### Example
+ * ```typescript
+ * import { overrideCursor } from 'phosphor-domutil';
+ *
+ * // force the cursor to be 'wait' for the entire document
+ * var override = overrideCursor('wait');
+ *
+ * // clear the override by disposing the return value
+ * override.dispose();
+ * ```
  */
 export
 function overrideCursor(cursor: string): IDisposable {
@@ -67,16 +78,18 @@ function overrideCursor(cursor: string): IDisposable {
  *
  * #### Example
  * ```typescript
- * var obj = document.createElement('img');
- * obj.style.position = 'absolute';
- * obj.style.left = 0;
- * obj.style.top = 0;
- * obj.width = 100;
- * obj.height = 100;
- * document.body.appendChild(obj);
+ * import { hitTest } from 'phosphor-domutil';
  *
- * hitTest(obj, 50, 50);   // true
- * hitTest(obj, 150, 150); // false
+ * var div = document.createElement('div');
+ * div.style.position = 'absolute';
+ * div.style.left = '0px';
+ * div.style.top = '0px';
+ * div.style.width = '100px';
+ * div.style.height = '100px';
+ * document.body.appendChild(div);
+ *
+ * hitTest(div, 50, 50);   // true
+ * hitTest(div, 150, 150); // false
  * ```
  */
 export
@@ -157,12 +170,15 @@ interface IBoxSizing {
  *
  * #### Example
  * ```typescript
- * var node = document.createElement('div');
- * document.body.appendChild(node);
+ * import { boxSizing } from 'phosphor-domutil';
  *
- * var sizing = boxSizing(node);
- * sizing.borderLeft;     // 0
- * sizing.paddingBottom;  // 0
+ * var div = document.createElement('div');
+ * div.style.borderTop = 'solid 10px black';
+ * document.body.appendChild(div);
+ *
+ * var sizing = boxSizing(div);
+ * sizing.borderTop;    // 10
+ * sizing.paddingLeft;  // 0
  * // etc...
  * ```
  */
@@ -229,12 +245,14 @@ interface ISizeLimits {
  * @returns The size limit data for the specified DOM node.
  *
  * #### Example
- * ```typescript
- * var node = document.createElement('div');
- * document.body.appendNode(node);
+ * import { sizeLimits } from 'phosphor-domutil';
  *
- * var limits = sizeLimits(node);
- * limits.minWidth;   // 0
+ * var div = document.createElement('div');
+ * div.style.minWidth = '90px';
+ * document.body.appendChild(div);
+ *
+ * var limits = sizeLimits(div);
+ * limits.minWidth;   // 90
  * limits.maxHeight;  // Infinity
  * // etc...
  * ```
