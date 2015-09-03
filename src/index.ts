@@ -245,6 +245,7 @@ interface ISizeLimits {
  * @returns The size limit data for the specified DOM node.
  *
  * #### Example
+ * ```typescript
  * import { sizeLimits } from 'phosphor-domutil';
  *
  * var div = document.createElement('div');
