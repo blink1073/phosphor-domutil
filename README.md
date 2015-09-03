@@ -80,6 +80,17 @@ Earlier versions may also work, but come with no guarantees.
 - Chrome 38+
 
 
+Bundle for the Browser
+----------------------
+
+Follow the package install instructions first.
+
+```bash
+npm install --save-dev browserify browserify-css
+browserify myapp.js -t browserify-css -o mybundle.js
+```
+
+
 Usage Examples
 --------------
 
@@ -89,67 +100,61 @@ omit the type declarations when using a language other than TypeScript.
 **overrideCursor**
 
 ```typescript
-import {
-  overrideCursor
-} from 'phosphor-domutil';
+import { overrideCursor } from 'phosphor-domutil';
 
-// overrideCursor returns a `disposable`
-var cursorDisposable = overrideCursor('wait');
+// force the cursor to be 'wait' for the entire document
+var override = overrideCursor('wait');
 
-// when you want to stop overriding the cursor, just dispose of it.
-cursorDisposable.dispose();
+// clear the override by disposing the return value
+override.dispose();
 ```
 
 **hitTest**
 
 ```typescript
-import {
-  hitTest
-} from 'phosphor-domutil';
+import { hitTest } from 'phosphor-domutil';
 
-// Set up a dummy test object, 100x100 at (0,0)
-var obj = document.createElement('img');
-obj.style.position = 'absolute';
-obj.style.left = '0px';
-obj.style.top = '0px';
-obj.width = 100;
-obj.height = 100;
-document.body.appendChild(obj);
+// Set up a dummy test node
+var div = document.createElement('div');
+div.style.position = 'absolute';
+div.style.left = '0px';
+div.style.top = '0px';
+div.style.width = '100px';
+div.style.height = '100px';
+document.body.appendChild(div);
 
-hitTest(obj, 50, 50); // true
-hitTest(obj, 150, 150); // false
+hitTest(div, 50, 50);   // true
+hitTest(div, 150, 150); // false
 ```
 
 **boxSizing**
 
 ```typescript
-import {
-  boxSizing
-} from 'phosphor-domutil';
+import { boxSizing } from 'phosphor-domutil';
 
-// Set up a dummy object
-var obj = document.createElement('img');
-obj.style.position = 'absolute';
-obj.style.borderTop = "solid 10px black";
-document.body.appendChild(obj);
+// Set up a dummy test node
+var div = document.createElement('div');
+div.style.position = 'absolute';
+div.style.borderTop = 'solid 10px black';
+document.body.appendChild(div);
 
-var sizing = boxSizing(obj);
-console.log(sizing.borderTop); // 10
+var sizing = boxSizing(div);
+sizing.borderTop;  // 10
+// etc...
 ```
 
 **sizeLimits**
 
 ```typescript
-import {
-  sizeLimits
-} from 'phosphor-domutil';
+import { sizeLimits } from 'phosphor-domutil';
 
-// Set up dummy object
-var obj = document.createElement('img');
-obj.style.position = 'absolute';
-obj.style.minWidth = '90px';
-document.body.appendChild(obj);
+// Set up dummy test node
+var div = document.createElement('div');
+div.style.position = 'absolute';
+div.style.minWidth = '90px';
+document.body.appendChild(div);
 
-var limits = sizeLimits(obj);
-console.log(limits.minWidth); // 90
+var limits = sizeLimits(div);
+limits.minWidth;  // 90
+// etc...
 ```
