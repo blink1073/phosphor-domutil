@@ -3,6 +3,8 @@
 # submit coverage to coveralls
 cat ./test/coverage/Firefox*/lcov.info | ./node_modules/coveralls/bin/coveralls.js
 
+exit
+
 # push docs on master branch
 if [[ $TRAVIS_PULL_REQUEST == false && $TRAVIS_BRANCH == "master" ]]
 then
