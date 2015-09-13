@@ -49,6 +49,9 @@
     "lib/index.css",
     "lib/index.d.ts"
   ],
+  "browserify": {
+    "transform": ["browserify-css"]
+  },
   "keywords": [
     "ui",
     "domutil"
