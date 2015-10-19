@@ -6,7 +6,7 @@
   "typings": "lib/index.d.ts",
   "dependencies": {
     "phosphor-disposable": "^1.0.4",
-    "dummy": "^0.0.1"
+    "dummy": "^0.1.0"
   },
   "devDependencies": {
     "browserify-css": "^0.6.1",
