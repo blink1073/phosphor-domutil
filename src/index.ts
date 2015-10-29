@@ -268,3 +268,47 @@ function sizeLimits(node: HTMLElement): ISizeLimits {
     maxHeight: parseInt(cstyle.maxHeight, 10) || Infinity,
   }
 }
+
+
+const DRAG_MIME_TYPE = 'application/phosphor-draggable';
+
+var dropCache: { data: { [reference: string]: any }, id: number } = {
+  data: { },
+  id: 0
+};
+
+/**
+ * Get arbitrary data that is associated with a drag and drop operation.
+ *
+ * This method will typically be called in a drop event handler.
+ */
+export
+function getDropData(event: DragEvent): any {
+  var reference = event.dataTransfer.getData(DRAG_MIME_TYPE);
+  return dropCache.data[reference];
+}
+
+
+/**
+ * Set arbitrary data that is associated with a specific drag event.
+ *
+ * This method should be called in dragstart event handlers.
+ */
+export
+function setDropData(event: DragEvent, data: any): void {
+  var reference = 'drop-' + dropCache.id++;
+  dropCache.data[reference] = data;
+  event.dataTransfer.setData(DRAG_MIME_TYPE, reference);
+}
+
+
+/**
+ * Clear the internal reference to a DragEvent's eventual handler, which
+ * is stored in the local private variable: dragFactory. This method should
+ * be called in dragend event handlers.
+ */
+export
+function clearDropData(event: DragEvent): void {
+  var reference = event.dataTransfer.getData(DRAG_MIME_TYPE);
+  delete dropCache.data[reference];
+}
