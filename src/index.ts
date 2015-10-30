@@ -272,10 +272,12 @@ function sizeLimits(node: HTMLElement): ISizeLimits {
 
 const DRAG_MIME_TYPE = 'application/x-phosphor-draggable';
 
+
 var dropCache = {
   data: Object.create(null),
   id: 0
 };
+
 
 /**
  * Get arbitrary data associated with a drag and drop operation.
