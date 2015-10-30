@@ -31,6 +31,7 @@ function createDragEvent(): DragEvent {
   return <DragEvent>event;
 }
 
+
 var dragPayloadOne = () => { /* an arbitrary function */ };
 var dragMimeOne = 'application/x-phosphor-test-one';
 var dragPayloadTwo = { an: 'arbitrary', value: 0 };
@@ -189,25 +190,31 @@ describe('phosphor-domutil', () => {
   });
 
   describe('setDropData', () => {
+
     it('should set arbitrary data attached to a DragEvent', () => {
       expect(setDropData(dragEvent, dragMimeOne, dragPayloadOne)).to.be(void 0);
       expect(setDropData(dragEvent, dragMimeTwo, dragPayloadTwo)).to.be(void 0);
     });
+
   });
 
   describe('getDropData', () => {
+
     it('should get arbitrary data attached to a DragEvent', () => {
       expect(getDropData(dragEvent, dragMimeOne)).to.be(dragPayloadOne);
       expect(getDropData(dragEvent, dragMimeTwo)).to.be(dragPayloadTwo);
     });
+
   });
 
   describe('clearDropData', () => {
+
     it('should clear data attached to a DragEvent', () => {
       expect(clearDropData(dragEvent)).to.be(void 0);
       expect(getDropData(dragEvent, dragMimeOne)).to.be(void 0);
       expect(getDropData(dragEvent, dragMimeTwo)).to.be(void 0);
     });
+
   });
 
 });
