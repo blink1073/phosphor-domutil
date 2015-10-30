@@ -11,7 +11,7 @@ import expect = require('expect.js');
 
 import {
   OVERRIDE_CURSOR_CLASS, boxSizing, hitTest, overrideCursor, sizeLimits,
-  getDropData, setDropData, clearDropData
+  getDragData, setDragData, clearDragData
 } from '../../lib/index';
 
 import './index.css';
@@ -190,30 +190,30 @@ describe('phosphor-domutil', () => {
 
   });
 
-  describe('setDropData', () => {
+  describe('setDragData', () => {
 
     it('should set arbitrary data attached to a DragEvent', () => {
-      expect(setDropData(dragEvent, dragMimeOne, dragPayloadOne)).to.be(void 0);
-      expect(setDropData(dragEvent, dragMimeTwo, dragPayloadTwo)).to.be(void 0);
+      expect(setDragData(dragEvent, dragMimeOne, dragPayloadOne)).to.be(void 0);
+      expect(setDragData(dragEvent, dragMimeTwo, dragPayloadTwo)).to.be(void 0);
     });
 
   });
 
-  describe('getDropData', () => {
+  describe('getDragData', () => {
 
     it('should get arbitrary data attached to a DragEvent', () => {
-      expect(getDropData(dragEvent, dragMimeOne)).to.be(dragPayloadOne);
-      expect(getDropData(dragEvent, dragMimeTwo)).to.be(dragPayloadTwo);
+      expect(getDragData(dragEvent, dragMimeOne)).to.be(dragPayloadOne);
+      expect(getDragData(dragEvent, dragMimeTwo)).to.be(dragPayloadTwo);
     });
 
   });
 
-  describe('clearDropData', () => {
+  describe('clearDragData', () => {
 
     it('should clear data attached to a DragEvent', () => {
-      expect(clearDropData(dragEvent)).to.be(void 0);
-      expect(getDropData(dragEvent, dragMimeOne)).to.be(void 0);
-      expect(getDropData(dragEvent, dragMimeTwo)).to.be(void 0);
+      expect(clearDragData(dragEvent)).to.be(void 0);
+      expect(getDragData(dragEvent, dragMimeOne)).to.be(void 0);
+      expect(getDragData(dragEvent, dragMimeTwo)).to.be(void 0);
     });
 
   });
