@@ -38,6 +38,7 @@ var dragPayloadTwo = { an: 'arbitrary', value: 0 };
 var dragMimeTwo = 'application/x-phosphor-test-two';
 var dragEvent = createDragEvent();
 
+
 describe('phosphor-domutil', () => {
 
   describe('OVERRIDE_CURSOR_CLASS', () => {
