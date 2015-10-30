@@ -10,10 +10,33 @@
 import expect = require('expect.js');
 
 import {
-  OVERRIDE_CURSOR_CLASS, boxSizing, hitTest, overrideCursor, sizeLimits
+  OVERRIDE_CURSOR_CLASS, boxSizing, hitTest, overrideCursor, sizeLimits,
+  getDragData, setDragData, clearDragData
 } from '../../lib/index';
 
 import './index.css';
+
+
+function createDragEvent(): DragEvent {
+  var data: { [mime: string]: string } = {};
+  var event = document.createEvent('Event');
+  (<any>event).dataTransfer = <DataTransfer>{
+    getData: (mime: string): string => {
+      return mime in data ? data[mime] : null;
+    },
+    setData: (mime: string, datum: string): void => {
+      data[mime] = datum;
+    }
+  };
+  return <DragEvent>event;
+}
+
+
+var dragPayloadOne = () => { /* an arbitrary function */ };
+var dragMimeOne = 'application/x-phosphor-test-one';
+var dragPayloadTwo = { an: 'arbitrary', value: 0 };
+var dragMimeTwo = 'application/x-phosphor-test-two';
+var dragEvent = createDragEvent();
 
 
 describe('phosphor-domutil', () => {
@@ -163,6 +186,34 @@ describe('phosphor-domutil', () => {
       expect(limits.maxWidth).to.be(100);
       expect(limits.maxHeight).to.be(105);
       document.body.removeChild(div);
+    });
+
+  });
+
+  describe('setDragData', () => {
+
+    it('should set arbitrary data attached to a DragEvent', () => {
+      expect(setDragData(dragEvent, dragMimeOne, dragPayloadOne)).to.be(void 0);
+      expect(setDragData(dragEvent, dragMimeTwo, dragPayloadTwo)).to.be(void 0);
+    });
+
+  });
+
+  describe('getDragData', () => {
+
+    it('should get arbitrary data attached to a DragEvent', () => {
+      expect(getDragData(dragEvent, dragMimeOne)).to.be(dragPayloadOne);
+      expect(getDragData(dragEvent, dragMimeTwo)).to.be(dragPayloadTwo);
+    });
+
+  });
+
+  describe('clearDragData', () => {
+
+    it('should clear data attached to a DragEvent', () => {
+      expect(clearDragData(dragEvent)).to.be(void 0);
+      expect(getDragData(dragEvent, dragMimeOne)).to.be(void 0);
+      expect(getDragData(dragEvent, dragMimeTwo)).to.be(void 0);
     });
 
   });
