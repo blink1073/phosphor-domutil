@@ -17,6 +17,26 @@ import {
 import './index.css';
 
 
+function createDragEvent(): DragEvent {
+  var data: { [mime: string]: string } = {};
+  var event = document.createEvent('Event');
+  (<any>event).dataTransfer = <DataTransfer>{
+    getData: (mime: string): string => {
+      return mime in data ? data[mime] : null;
+    },
+    setData: (mime: string, datum: string): void => {
+      data[mime] = datum;
+    }
+  };
+  return <DragEvent>event;
+}
+
+var dragPayloadOne = () => { /* an arbitrary function */ };
+var dragMimeOne = 'application/x-phosphor-test-one';
+var dragPayloadTwo = { an: 'arbitrary', value: 0 };
+var dragMimeTwo = 'application/x-phosphor-test-two';
+var dragEvent = createDragEvent();
+
 describe('phosphor-domutil', () => {
 
   describe('OVERRIDE_CURSOR_CLASS', () => {
@@ -168,40 +188,26 @@ describe('phosphor-domutil', () => {
 
   });
 
-  (() => {
-    let payload = () => { /* an arbitrary function */ };
-    let event = (() => {
-      var data: { [mime: string]: string } = {};
-      var event = document.createEvent('Event');
-      (<any>event).dataTransfer = <DataTransfer>{
-        getData: (mime: string): string => {
-          return mime in data ? data[mime] : null;
-        },
-        setData: (mime: string, datum: string): void => {
-          data[mime] = datum;
-        }
-      };
-      return <DragEvent>event;
-    })();
-
-    describe('setDropData', () => {
-      it('should set arbitrary data attached to a DragEvent', () => {
-        expect(setDropData(event, payload)).to.be(void 0);
-      });
+  describe('setDropData', () => {
+    it('should set arbitrary data attached to a DragEvent', () => {
+      expect(setDropData(dragEvent, dragMimeOne, dragPayloadOne)).to.be(void 0);
+      expect(setDropData(dragEvent, dragMimeTwo, dragPayloadTwo)).to.be(void 0);
     });
+  });
 
-    describe('getDropData', () => {
-      it('should get arbitrary data attached to a DragEvent', () => {
-        expect(getDropData(event)).to.be(payload);
-      });
+  describe('getDropData', () => {
+    it('should get arbitrary data attached to a DragEvent', () => {
+      expect(getDropData(dragEvent, dragMimeOne)).to.be(dragPayloadOne);
+      expect(getDropData(dragEvent, dragMimeTwo)).to.be(dragPayloadTwo);
     });
+  });
 
-    describe('clearDropData', () => {
-      it('should clear data attached to a DragEvent', () => {
-        expect(clearDropData(event)).to.be(void 0);
-        expect(getDropData(event)).to.be(void 0);
-      });
+  describe('clearDropData', () => {
+    it('should clear data attached to a DragEvent', () => {
+      expect(clearDropData(dragEvent)).to.be(void 0);
+      expect(getDropData(dragEvent, dragMimeOne)).to.be(void 0);
+      expect(getDropData(dragEvent, dragMimeTwo)).to.be(void 0);
     });
-  })();
+  });
 
 });

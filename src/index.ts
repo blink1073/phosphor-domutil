@@ -272,8 +272,8 @@ function sizeLimits(node: HTMLElement): ISizeLimits {
 
 const DRAG_MIME_TYPE = 'application/x-phosphor-draggable';
 
-var dropCache: { data: { [reference: string]: any }, id: number } = {
-  data: { },
+var dropCache = {
+  data: Object.create(null),
   id: 0
 };
 
@@ -283,9 +283,9 @@ var dropCache: { data: { [reference: string]: any }, id: number } = {
  * Should be called in a drop event handler.
  */
 export
-function getDropData(event: DragEvent): any {
-  let reference = event.dataTransfer.getData(DRAG_MIME_TYPE);
-  return dropCache.data[reference];
+function getDropData(event: DragEvent, mime: string): any {
+  let id = event.dataTransfer.getData(DRAG_MIME_TYPE) || -1;
+  return dropCache.data[id] && dropCache.data[id][mime];
 }
 
 
@@ -295,10 +295,14 @@ function getDropData(event: DragEvent): any {
  * Should be called in a dragstart event handler.
  */
 export
-function setDropData(event: DragEvent, data: any): void {
-  let reference = 'drop-' + dropCache.id++;
-  dropCache.data[reference] = data;
-  event.dataTransfer.setData(DRAG_MIME_TYPE, reference);
+function setDropData(event: DragEvent, mime: string, data: any): void {
+  let id = event.dataTransfer.getData(DRAG_MIME_TYPE);
+  if (!id) {
+    id = `drag-${dropCache.id++}`;
+    event.dataTransfer.setData(DRAG_MIME_TYPE, id);
+    dropCache.data[id] = { };
+  }
+  dropCache.data[id][mime] = data;
 }
 
 
@@ -309,6 +313,6 @@ function setDropData(event: DragEvent, data: any): void {
  */
 export
 function clearDropData(event: DragEvent): void {
-  let reference = event.dataTransfer.getData(DRAG_MIME_TYPE);
-  delete dropCache.data[reference];
+  let id = event.dataTransfer.getData(DRAG_MIME_TYPE);
+  delete dropCache.data[id];
 }
