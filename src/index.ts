@@ -270,7 +270,7 @@ function sizeLimits(node: HTMLElement): ISizeLimits {
 }
 
 
-const DRAG_MIME_TYPE = 'application/x-phosphor-drag-data';
+const DRAG_MIME_TYPE = 'application/x-phosphor-drag-id';
 
 
 var dropCache = {
