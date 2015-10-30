@@ -332,8 +332,8 @@ function setDropData(event: DragEvent, mime: string, data: any): void {
  *
  * #### Notes
  * The native drag and drop life cycle ends with a `dragend` event on the
- * draggable node. The value associated with a particular MIME should be cleared
- * in this event handler.
+ * draggable node. The values associated with a particular DragEvent should be
+ * cleared in this event handler.
  */
 export
 function clearDropData(event: DragEvent): void {
