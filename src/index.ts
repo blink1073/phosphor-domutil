@@ -303,9 +303,9 @@ function setDropData(event: DragEvent, data: any): void {
 
 
 /**
- * Clear the internal reference to a DragEvent's eventual handler, which
- * is stored in the local private variable: dragFactory. This method should
- * be called in dragend event handlers.
+ * Clear the data being held privately for a specific drag event.
+ *
+ * This method should be called in dragend event handlers.
  */
 export
 function clearDropData(event: DragEvent): void {
