@@ -284,7 +284,7 @@ var dropCache: { data: { [reference: string]: any }, id: number } = {
  */
 export
 function getDropData(event: DragEvent): any {
-  var reference = event.dataTransfer.getData(DRAG_MIME_TYPE);
+  let reference = event.dataTransfer.getData(DRAG_MIME_TYPE);
   return dropCache.data[reference];
 }
 
@@ -296,7 +296,7 @@ function getDropData(event: DragEvent): any {
  */
 export
 function setDropData(event: DragEvent, data: any): void {
-  var reference = 'drop-' + dropCache.id++;
+  let reference = 'drop-' + dropCache.id++;
   dropCache.data[reference] = data;
   event.dataTransfer.setData(DRAG_MIME_TYPE, reference);
 }
@@ -309,6 +309,6 @@ function setDropData(event: DragEvent, data: any): void {
  */
 export
 function clearDropData(event: DragEvent): void {
-  var reference = event.dataTransfer.getData(DRAG_MIME_TYPE);
+  let reference = event.dataTransfer.getData(DRAG_MIME_TYPE);
   delete dropCache.data[reference];
 }
