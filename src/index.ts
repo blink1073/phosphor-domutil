@@ -278,7 +278,7 @@ var dropCache: { data: { [reference: string]: any }, id: number } = {
 };
 
 /**
- * Get arbitrary data that is associated with a drag and drop operation.
+ * Get arbitrary data associated with a drag and drop operation.
  *
  * This method will typically be called in a drop event handler.
  */
@@ -290,7 +290,7 @@ function getDropData(event: DragEvent): any {
 
 
 /**
- * Set arbitrary data that is associated with a specific drag event.
+ * Set arbitrary data associated with a specific drag event.
  *
  * This method should be called in dragstart event handlers.
  */
@@ -303,7 +303,7 @@ function setDropData(event: DragEvent, data: any): void {
 
 
 /**
- * Clear the data being held privately for a specific drag event.
+ * Clear data being held privately for a specific drag event.
  *
  * This method should be called in dragend event handlers.
  */
