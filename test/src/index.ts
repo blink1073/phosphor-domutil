@@ -10,7 +10,8 @@
 import expect = require('expect.js');
 
 import {
-  OVERRIDE_CURSOR_CLASS, boxSizing, hitTest, overrideCursor, sizeLimits
+  OVERRIDE_CURSOR_CLASS, boxSizing, hitTest, overrideCursor, sizeLimits,
+  getDropData, setDropData, clearDropData
 } from '../../lib/index';
 
 import './index.css';
@@ -166,5 +167,41 @@ describe('phosphor-domutil', () => {
     });
 
   });
+
+  (() => {
+    let payload = () => { /* an arbitrary function */ };
+    let event = (() => {
+      var data: { [mime: string]: string } = {};
+      var event = document.createEvent('Event');
+      (<any>event).dataTransfer = <DataTransfer>{
+        getData: (mime: string): string => {
+          return mime in data ? data[mime] : null;
+        },
+        setData: (mime: string, datum: string): void => {
+          data[mime] = datum;
+        }
+      };
+      return <DragEvent>event;
+    })();
+
+    describe('setDropData', () => {
+      it('should set arbitrary data attached to a DragEvent', () => {
+        expect(setDropData(event, payload)).to.be(void 0);
+      });
+    });
+
+    describe('getDropData', () => {
+      it('should get arbitrary data attached to a DragEvent', () => {
+        expect(getDropData(event)).to.be(payload);
+      });
+    });
+
+    describe('clearDropData', () => {
+      it('should clear data attached to a DragEvent', () => {
+        expect(clearDropData(event)).to.be(void 0);
+        expect(getDropData(event)).to.be(void 0);
+      });
+    });
+  })();
 
 });
