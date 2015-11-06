@@ -97,24 +97,30 @@ Usage Examples
 **Note:** This module is fully compatible with Node/Babel/ES6/ES5. Simply
 omit the type declarations when using a language other than TypeScript.
 
-**overrideCursor**
+**Cursor Override:**
 
 ```typescript
-import { overrideCursor } from 'phosphor-domutil';
+import {
+  overrideCursor
+} from 'phosphor-domutil';
+
 
 // force the cursor to be 'wait' for the entire document
-var override = overrideCursor('wait');
+let override = overrideCursor('wait');
 
 // clear the override by disposing the return value
 override.dispose();
 ```
 
-**hitTest**
+**Hit Testing:**
 
 ```typescript
-import { hitTest } from 'phosphor-domutil';
+import {
+  hitTest
+} from 'phosphor-domutil';
 
-var div = document.createElement('div');
+
+let div = document.createElement('div');
 div.style.position = 'absolute';
 div.style.left = '0px';
 div.style.top = '0px';
@@ -126,32 +132,67 @@ hitTest(div, 50, 50);   // true
 hitTest(div, 150, 150); // false
 ```
 
-**boxSizing**
+**Box Sizing:**
 
 ```typescript
-import { boxSizing } from 'phosphor-domutil';
+import {
+  boxSizing
+} from 'phosphor-domutil';
 
-var div = document.createElement('div');
+let div = document.createElement('div');
 div.style.borderTop = 'solid 10px black';
 document.body.appendChild(div);
 
-var sizing = boxSizing(div);
+let sizing = boxSizing(div);
 sizing.borderTop;    // 10
 sizing.paddingLeft;  // 0
 // etc...
 ```
 
-**sizeLimits**
+**Size Limits:**
 
 ```typescript
-import { sizeLimits } from 'phosphor-domutil';
+import {
+  sizeLimits
+} from 'phosphor-domutil';
 
-var div = document.createElement('div');
+let div = document.createElement('div');
 div.style.minWidth = '90px';
 document.body.appendChild(div);
 
-var limits = sizeLimits(div);
+let limits = sizeLimits(div);
 limits.minWidth;   // 90
 limits.maxHeight;  // Infinity
 // etc...
+```
+
+**Custom Drag Data:**
+
+```typescript
+import {
+  clearDragData, getDragData, setDragData
+} from 'phosphor-domutil';
+
+
+// pseudo-code
+class SomeDragSource {
+
+  evtDragStart(event: DragEvent): void {
+    setDragData(event, 'application/x-my-custom-data', { foo: 12, bar: 42 });
+  }
+
+  evtDragEnd(event: DragEvent): void {
+    clearDragData(event);
+  }
+}
+
+
+// pseudo-code
+class SomeDropTarget {
+
+  evtDrop(event: DragEvent): void {
+    let data = getDragData(event, 'application/x-my-custom-data');
+    console.log(data);  // { foo: 12, bar: 42 }
+  }
+}
 ```
