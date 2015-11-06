@@ -42,7 +42,7 @@ let overrideID = 0;
  * import { overrideCursor } from 'phosphor-domutil';
  *
  * // force the cursor to be 'wait' for the entire document
- * var override = overrideCursor('wait');
+ * let override = overrideCursor('wait');
  *
  * // clear the override by disposing the return value
  * override.dispose();
@@ -78,7 +78,7 @@ function overrideCursor(cursor: string): IDisposable {
  * ```typescript
  * import { hitTest } from 'phosphor-domutil';
  *
- * var div = document.createElement('div');
+ * let div = document.createElement('div');
  * div.style.position = 'absolute';
  * div.style.left = '0px';
  * div.style.top = '0px';
@@ -170,11 +170,11 @@ interface IBoxSizing {
  * ```typescript
  * import { boxSizing } from 'phosphor-domutil';
  *
- * var div = document.createElement('div');
+ * let div = document.createElement('div');
  * div.style.borderTop = 'solid 10px black';
  * document.body.appendChild(div);
  *
- * var sizing = boxSizing(div);
+ * let sizing = boxSizing(div);
  * sizing.borderTop;    // 10
  * sizing.paddingLeft;  // 0
  * // etc...
@@ -246,11 +246,11 @@ interface ISizeLimits {
  * ```typescript
  * import { sizeLimits } from 'phosphor-domutil';
  *
- * var div = document.createElement('div');
+ * let div = document.createElement('div');
  * div.style.minWidth = '90px';
  * document.body.appendChild(div);
  *
- * var limits = sizeLimits(div);
+ * let limits = sizeLimits(div);
  * limits.minWidth;   // 90
  * limits.maxHeight;  // Infinity
  * // etc...
