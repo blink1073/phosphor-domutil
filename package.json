@@ -5,7 +5,7 @@
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "dependencies": {
-    "phosphor-disposable": "^1.0.4"
+    "phosphor-disposable": "^1.0.5"
   },
   "devDependencies": {
     "browserify-css": "^0.6.1",
@@ -55,8 +55,9 @@
     ]
   },
   "keywords": [
+    "dom",
     "ui",
-    "domutil"
+    "utility"
   ],
   "author": "S. Chris Colbert <sccolbert@gmail.com>",
   "license": "BSD-3-Clause",
