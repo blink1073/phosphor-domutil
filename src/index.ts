@@ -464,7 +464,7 @@ class DragHandler implements IDisposable {
     this._dragData.ghost = this.ghost();
     this._dragData.ghost.style.position = 'absolute';
     document.body.appendChild(this._dragData.ghost);
-    this.onDragStart(event, this._dragData);
+    this.onDragStart.call(this._widget, event, this._dragData);
   }
 
   private _evtMouseDown(event: MouseEvent): void {
@@ -512,7 +512,7 @@ class DragHandler implements IDisposable {
         document.body.removeChild(this._dragData.ghost);
       }
       DroppableHandler.drop(event, this._dragData);
-      this.onDragEnd(event, this._dragData);
+      this.onDragEnd.call(this._widget, event, this._dragData);
     }
     this._dragData = null;
   }
