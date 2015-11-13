@@ -11,6 +11,14 @@ import {
   DisposableDelegate, IDisposable
 } from 'phosphor-disposable';
 
+import {
+  Property
+} from 'phosphor-properties';
+
+import {
+  Widget
+} from 'phosphor-widget';
+
 import './index.css';
 
 
@@ -100,6 +108,16 @@ function hitTest(node: HTMLElement, clientX: number, clientY: number): boolean {
     clientY < rect.bottom
   );
 }
+
+
+/**
+ * Test whether a client rect contains the given client position.
+ */
+export
+function hitTestRect(r: ClientRect, x: number, y: number): boolean {
+  return x >= r.left && y >= r.top && x < r.right && y < r.bottom;
+}
+
 
 
 /**
@@ -265,4 +283,240 @@ function sizeLimits(node: HTMLElement): ISizeLimits {
     maxWidth: parseInt(cstyle.maxWidth, 10) || Infinity,
     maxHeight: parseInt(cstyle.maxHeight, 10) || Infinity,
   }
+}
+
+
+export
+interface IDragDropData {
+  started: boolean;
+  ghost: HTMLElement,
+  override?: IDisposable;
+  payload: { [mime: string]: any };
+  startX: number;
+  startY: number;
+}
+
+
+export
+class DroppableHandler implements IDisposable {
+
+  static id = 0;
+
+  static idProperty = new Property<DroppableHandler, number>({
+    name: 'id',
+    value: null
+  });
+
+  static droppables: {
+    [id: string]: {
+      entered: boolean,
+      handler: DroppableHandler,
+      rect: ClientRect
+    }
+  } = Object.create(null);
+
+  static register(handler: DroppableHandler): void {
+    let id = ++DroppableHandler.id;
+    DroppableHandler.idProperty.set(handler, id);
+    DroppableHandler.droppables[id] = {
+      entered: false,
+      handler: handler,
+      rect: null
+    };
+  }
+
+  static deregister(handler: DroppableHandler): void {
+    let id = DroppableHandler.idProperty.get(handler);
+    if (DroppableHandler.droppables[id]) {
+      delete DroppableHandler.droppables[id];
+    }
+  }
+
+  static drag(event: MouseEvent, data: IDragDropData): void {
+    let x = event.clientX;
+    let y = event.clientY;
+
+    Object.keys(DroppableHandler.droppables).forEach(key => {
+      // Multiple drop targets might match. This requires thought.
+      let droppable = DroppableHandler.droppables[key];
+      let widget = droppable.handler._widget;
+      // Cache the bounding rectangle when the drag begins.
+      if (!droppable.rect) {
+        droppable.rect = droppable.handler._widget.node.getBoundingClientRect();
+      }
+      if (hitTestRect(droppable.rect, x, y)) {
+        if (!droppable.entered) {
+          droppable.entered = true;
+          droppable.handler.onDragEnter.call(widget, event, data);
+        }
+        droppable.handler.onDrag.call(widget, event, data);
+      } else if (droppable.entered) {
+        droppable.entered = false;
+        droppable.handler.onDragLeave.call(widget, event, data);
+      }
+    });
+  }
+
+  static drop(event: MouseEvent, data: IDragDropData): void {
+    let x = event.clientX;
+    let y = event.clientY;
+
+    Object.keys(DroppableHandler.droppables).forEach(key => {
+      // Multiple drop targets might match. This requires thought.
+      let droppable = DroppableHandler.droppables[key];
+      let widget = droppable.handler._widget;
+      if (!droppable.rect) {
+        droppable.rect = widget.node.getBoundingClientRect();
+      }
+      if (hitTestRect(droppable.rect, x, y)) {
+        if (!droppable.entered) {
+          droppable.entered = true;
+          droppable.handler.onDragEnter.call(widget, event, data);
+        }
+        droppable.handler.onDrop.call(widget, event, data);
+      } else if (droppable.entered) {
+        droppable.entered = false;
+        droppable.handler.onDragLeave.call(widget, event, data);
+      }
+    });
+  }
+
+  constructor(widget: Widget) {
+    this._widget = widget;
+    DroppableHandler.register(this);
+  }
+
+  dispose(): void {
+    DroppableHandler.deregister(this);
+    this._widget = null;
+  }
+
+  get isDisposed(): boolean {
+    return this._widget === null;
+  }
+
+  onDragEnter(event: MouseEvent, dragData: IDragDropData): void { }
+
+  onDrag(event: MouseEvent, dragData: IDragDropData): void { }
+
+  onDragLeave(event: MouseEvent, dragData: IDragDropData): void { }
+
+  onDrop(event: MouseEvent, dragData: IDragDropData): void { }
+
+  private _widget: Widget = null;
+}
+
+
+export
+class DragHandler implements IDisposable {
+
+  autostart = true;
+
+  dragThreshold = 5;
+
+  constructor(widget: Widget) {
+    this._widget = widget;
+    widget.node.addEventListener('mousemove', this);
+  }
+
+  dispose(): void {
+    this._widget.node.removeEventListener('mousemove', this);
+    this._widget = null;
+  }
+
+  get isDisposed(): boolean {
+    return this._widget === null;
+  }
+
+  ghost(): HTMLElement {
+    let widget = this._widget;
+    let node = widget.node.cloneNode(true) as HTMLElement;
+    let rect = widget.node.getBoundingClientRect();
+    node.style.height = `${rect.height}px`;
+    node.style.width = `${rect.width}px`;
+    node.style.opacity = '0.75';
+    return node;
+  }
+
+  handleEvent(event: Event): void {
+    switch (event.type) {
+    case 'mousedown':
+      this._evtMouseDown(event as MouseEvent);
+      break;
+    case 'mousemove':
+      this._evtMouseMove(event as MouseEvent);
+      break;
+    case 'mouseup':
+      this._evtMouseUp(event as MouseEvent);
+      break;
+    }
+  }
+
+  onDragStart(event: MouseEvent, dragData: IDragDropData): void { }
+
+  onDragEnd(event: MouseEvent, dragData: IDragDropData): void { }
+
+  startDrag(event: MouseEvent): void {
+    if (this._dragData.started) {
+      return;
+    }
+    this._dragData.started = true;
+    this._dragData.ghost = this.ghost();
+    this._dragData.ghost.style.position = 'absolute';
+    document.body.appendChild(this._dragData.ghost);
+    this.onDragStart(event, this._dragData);
+  }
+
+  private _evtMouseDown(event: MouseEvent): void {
+    if (event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    document.addEventListener('mousemove', this, true);
+    document.addEventListener('mouseup', this, true);
+    this._dragData = {
+      started: false,
+      ghost: null,
+      payload: Object.create(null),
+      startX: event.clientX,
+      startY: event.clientY
+    };
+  }
+
+  private _evtMouseMove(event: MouseEvent): void {
+    if (!this._dragData.started) {
+      if (!this.autostart) {
+        return;
+      }
+      let dx = Math.abs(event.clientX - this._dragData.startX);
+      let dy = Math.abs(event.clientY - this._dragData.startY);
+      if (Math.sqrt(dx * dx + dy * dy) >= this.dragThreshold) {
+        this.startDrag(event);
+      } else {
+        return;
+      }
+    }
+
+    // 10px is arbitary, this might require configuration.
+    this._dragData.ghost.style.top = `${event.clientY - 10}px`;
+    this._dragData.ghost.style.left = `${event.clientX - 10}px`;
+    DroppableHandler.drag(event, this._dragData);
+  }
+
+  private _evtMouseUp(event: MouseEvent): void {
+    document.removeEventListener('mousemove', this, true);
+    document.removeEventListener('mouseup', this, true);
+    if (this._dragData.started) {
+      if (this._dragData.ghost) {
+        document.body.removeChild(this._dragData.ghost);
+      }
+      DroppableHandler.drop(event, this._dragData);
+      this.onDragEnd(event, this._dragData);
+    }
+    this._dragData = null;
+  }
+
+  private _dragData: IDragDropData = null;
+  private _widget: Widget;
 }
