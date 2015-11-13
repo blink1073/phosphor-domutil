@@ -416,11 +416,11 @@ class DragHandler implements IDisposable {
 
   constructor(widget: Widget) {
     this._widget = widget;
-    widget.node.addEventListener('mousemove', this);
+    widget.node.addEventListener('mousedown', this);
   }
 
   dispose(): void {
-    this._widget.node.removeEventListener('mousemove', this);
+    this._widget.node.removeEventListener('mousedown', this);
     this._widget = null;
   }
 
