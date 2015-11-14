@@ -111,16 +111,6 @@ function hitTest(node: HTMLElement, clientX: number, clientY: number): boolean {
 
 
 /**
- * Test whether a client rect contains the given client position.
- */
-export
-function hitTestRect(r: ClientRect, x: number, y: number): boolean {
-  return x >= r.left && y >= r.top && x < r.right && y < r.bottom;
-}
-
-
-
-/**
  * The box sizing (border and padding) for a a DOM node.
  */
 export
@@ -332,32 +322,7 @@ class DroppableHandler implements IDisposable {
     }
   }
 
-  static drag(event: MouseEvent, data: IDragDropData): void {
-    let x = event.clientX;
-    let y = event.clientY;
-
-    Object.keys(DroppableHandler.droppables).forEach(key => {
-      // Multiple drop targets might match. This requires thought.
-      let droppable = DroppableHandler.droppables[key];
-      let widget = droppable.handler._widget;
-      // Cache the bounding rectangle when the drag begins.
-      if (!droppable.rect) {
-        droppable.rect = droppable.handler._widget.node.getBoundingClientRect();
-      }
-      if (hitTestRect(droppable.rect, x, y)) {
-        if (!droppable.entered) {
-          droppable.entered = true;
-          droppable.handler.onDragEnter.call(widget, event, data);
-        }
-        droppable.handler.onDrag.call(widget, event, data);
-      } else if (droppable.entered) {
-        droppable.entered = false;
-        droppable.handler.onDragLeave.call(widget, event, data);
-      }
-    });
-  }
-
-  static drop(event: MouseEvent, data: IDragDropData): void {
+  static deploy(action: string, event: MouseEvent, data: IDragDropData): void {
     let x = event.clientX;
     let y = event.clientY;
 
@@ -368,12 +333,20 @@ class DroppableHandler implements IDisposable {
       if (!droppable.rect) {
         droppable.rect = widget.node.getBoundingClientRect();
       }
-      if (hitTestRect(droppable.rect, x, y)) {
+      let { left, top, right, bottom } = droppable.rect;
+      if (x >= left && y >= top && x < right && y < bottom) {
         if (!droppable.entered) {
           droppable.entered = true;
           droppable.handler.onDragEnter.call(widget, event, data);
         }
-        droppable.handler.onDrop.call(widget, event, data);
+        switch (action) {
+        case 'drag':
+          droppable.handler.onDrag.call(widget, event, data);
+          break;
+        case 'drop':
+          droppable.handler.onDrop.call(widget, event, data);
+          break;
+        }
       } else if (droppable.entered) {
         droppable.entered = false;
         droppable.handler.onDragLeave.call(widget, event, data);
@@ -501,7 +474,7 @@ class DragHandler implements IDisposable {
     // 10px is arbitary, this might require configuration.
     this._dragData.ghost.style.top = `${event.clientY - 10}px`;
     this._dragData.ghost.style.left = `${event.clientX - 10}px`;
-    DroppableHandler.drag(event, this._dragData);
+    DroppableHandler.deploy('drag', event, this._dragData);
   }
 
   private _evtMouseUp(event: MouseEvent): void {
@@ -511,7 +484,7 @@ class DragHandler implements IDisposable {
       if (this._dragData.ghost) {
         document.body.removeChild(this._dragData.ghost);
       }
-      DroppableHandler.drop(event, this._dragData);
+      DroppableHandler.deploy('drop', event, this._dragData);
       this.onDragEnd.call(this._widget, event, this._dragData);
     }
     this._dragData = null;

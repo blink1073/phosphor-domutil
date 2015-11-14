@@ -53,10 +53,6 @@ export declare function overrideCursor(cursor: string): IDisposable;
  */
 export declare function hitTest(node: HTMLElement, clientX: number, clientY: number): boolean;
 /**
- * Test whether a client rect contains the given client position.
- */
-export declare function hitTestRect(r: ClientRect, x: number, y: number): boolean;
-/**
  * The box sizing (border and padding) for a a DOM node.
  */
 export interface IBoxSizing {
@@ -188,8 +184,7 @@ export declare class DroppableHandler implements IDisposable {
     };
     static register(handler: DroppableHandler): void;
     static deregister(handler: DroppableHandler): void;
-    static drag(event: MouseEvent, data: IDragDropData): void;
-    static drop(event: MouseEvent, data: IDragDropData): void;
+    static deploy(action: string, event: MouseEvent, data: IDragDropData): void;
     constructor(widget: Widget);
     dispose(): void;
     isDisposed: boolean;
