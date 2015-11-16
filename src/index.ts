@@ -11,10 +11,6 @@ import {
   DisposableDelegate, IDisposable
 } from 'phosphor-disposable';
 
-import {
-  Property
-} from 'phosphor-properties';
-
 import './index.css';
 
 
@@ -363,14 +359,6 @@ var dropHandlerRegistry: {
 export
 class DropHandler implements IDisposable {
   /**
-   * The property descriptor for the `id` attached property.
-   */
-  static idProperty = new Property<DropHandler, number>({
-    name: 'id',
-    value: null
-  });
-
-  /**
    * Add a drop handler instance to the registry.
    *
    * @param handler - The drop handler being registered.
@@ -380,7 +368,7 @@ class DropHandler implements IDisposable {
    */
   static register(handler: DropHandler): void {
     let id = ++dropHandlerID;
-    DropHandler.idProperty.set(handler, id);
+    handler._id = id;
     dropHandlerRegistry[id] = {
       entered: false,
       handler: handler,
@@ -397,9 +385,8 @@ class DropHandler implements IDisposable {
    * This method should not need to be used by any clients of this library.
    */
   static deregister(handler: DropHandler): void {
-    let id = DropHandler.idProperty.get(handler);
-    if (dropHandlerRegistry[id]) {
-      delete dropHandlerRegistry[id];
+    if (handler._id && dropHandlerRegistry[handler._id]) {
+      delete dropHandlerRegistry[handler._id];
     }
   }
 
@@ -531,6 +518,7 @@ class DropHandler implements IDisposable {
    */
   onDrop: (event: MouseEvent, dragData: IDragDropData) => void = null;
 
+  private _id: number = null;
   private _node: Node = null;
   private _context: any = null;
 }
