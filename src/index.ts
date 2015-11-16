@@ -407,7 +407,7 @@ class DropHandler implements IDisposable {
    */
   static invalidateCache(): void {
     Object.keys(dropHandlerRegistry).forEach(key => {
-      delete dropHandlerRegistry[key].rect;
+      dropHandlerRegistry[key].rect = null;
     });
   }
 
@@ -766,11 +766,11 @@ class DragHandler implements IDisposable {
       if (this._dragData.ghost) {
         document.body.removeChild(this._dragData.ghost);
       }
+      DropHandler.invalidateCache();
       DropHandler.deploy('drop', event, this._dragData);
       if (this.onDragEnd) {
         this.onDragEnd.call(this._context, event, this._dragData);
       }
-      DropHandler.invalidateCache();
     }
     this._dragData = null;
   }
