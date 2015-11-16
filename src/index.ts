@@ -15,10 +15,6 @@ import {
   Property
 } from 'phosphor-properties';
 
-import {
-  Widget
-} from 'phosphor-widget';
-
 import './index.css';
 
 
@@ -328,7 +324,7 @@ var dropHandlerRegistry: {
 
 
 /**
- * A handler that provides a simple interface to make a widget a drop target.
+ * A handler that provides a simple interface to make a node a drop target.
  *
  * #### Example
  * ```typescript
@@ -430,29 +426,38 @@ class DropHandler implements IDisposable {
       // Multiple drop targets might match. For now, all of them will be fired,
       // but in the future, this behavior might change.
       let droppable = dropHandlerRegistry[key];
-      let widget = droppable.handler._widget;
+      let context = droppable.handler._context;
+      let node = droppable.handler._node;
 
       // At the beginning of a drag, cache the bounding rectangle.
       if (!droppable.rect) {
-        droppable.rect = widget.node.getBoundingClientRect();
+        droppable.rect = (node as HTMLElement).getBoundingClientRect();
       }
       let { left, top, right, bottom } = droppable.rect;
       if (x >= left && y >= top && x < right && y < bottom) {
         if (!droppable.entered) {
           droppable.entered = true;
-          droppable.handler.onDragEnter.call(widget, event, dragData);
+          if (droppable.handler.onDragEnter) {
+            droppable.handler.onDragEnter.call(context, event, dragData);
+          }
         }
         switch (action) {
         case 'drag':
-          droppable.handler.onDrag.call(widget, event, dragData);
+          if (droppable.handler.onDrag) {
+            droppable.handler.onDrag.call(context, event, dragData);
+          }
           break;
         case 'drop':
-          droppable.handler.onDrop.call(widget, event, dragData);
+          if (droppable.handler.onDrop) {
+            droppable.handler.onDrop.call(context, event, dragData);
+          }
           break;
         }
       } else if (droppable.entered) {
         droppable.entered = false;
-        droppable.handler.onDragLeave.call(widget, event, dragData);
+        if (droppable.handler.onDragLeave) {
+          droppable.handler.onDragLeave.call(context, event, dragData);
+        }
       }
     });
   }
@@ -460,10 +465,13 @@ class DropHandler implements IDisposable {
   /**
    * Construct a new drop handler.
    *
-   * @param widget - The widget to associate with the drop handler.
+   * @param node - The node that event listeners are attached to.
+   *
+   * @param context - The context within which to fire event handlers.
    */
-  constructor(widget: Widget) {
-    this._widget = widget;
+  constructor(node: Node, context: any) {
+    this._node = node;
+    this._context = context;
     DropHandler.register(this);
   }
 
@@ -472,14 +480,15 @@ class DropHandler implements IDisposable {
    */
   dispose(): void {
     DropHandler.deregister(this);
-    this._widget = null;
+    this._context = null;
+    this._node = null;
   }
 
   /**
    * Check if a drop handler is disposed.
    */
   get isDisposed(): boolean {
-    return this._widget === null;
+    return this._node === null;
   }
 
   /**
@@ -489,12 +498,8 @@ class DropHandler implements IDisposable {
    *
    * @param dragData - A reference to the drag/drop context used to pass data
    * between the different stages of the drag and drop life cycle.
-   *
-   * #### Notes
-   * This method should be overwritten per drop handler instance if a widget
-   * wants to listen for it.
    */
-  onDragEnter(event: MouseEvent, dragData: IDragDropData): void { }
+  onDragEnter: (event: MouseEvent, dragData: IDragDropData) => void = null;
 
   /**
    * Handle the drag event.
@@ -503,12 +508,8 @@ class DropHandler implements IDisposable {
    *
    * @param dragData - A reference to the drag/drop context used to pass data
    * between the different stages of the drag and drop life cycle.
-   *
-   * #### Notes
-   * This method should be overwritten per drop handler instance if a widget
-   * wants to listen for it.
    */
-  onDrag(event: MouseEvent, dragData: IDragDropData): void { }
+  onDrag: (event: MouseEvent, dragData: IDragDropData) => void = null;
 
   /**
    * Handle the drag leave event.
@@ -517,12 +518,8 @@ class DropHandler implements IDisposable {
    *
    * @param dragData - A reference to the drag/drop context used to pass data
    * between the different stages of the drag and drop life cycle.
-   *
-   * #### Notes
-   * This method should be overwritten per drop handler instance if a widget
-   * wants to listen for it.
    */
-  onDragLeave(event: MouseEvent, dragData: IDragDropData): void { }
+  onDragLeave: (event: MouseEvent, dragData: IDragDropData) => void = null;
 
   /**
    * Handle the drop event.
@@ -531,19 +528,16 @@ class DropHandler implements IDisposable {
    *
    * @param dragData - A reference to the drag/drop context used to pass data
    * between the different stages of the drag and drop life cycle.
-   *
-   * #### Notes
-   * This method should be overwritten per drop handler instance if a widget
-   * wants to listen for it.
    */
-  onDrop(event: MouseEvent, dragData: IDragDropData): void { }
+  onDrop: (event: MouseEvent, dragData: IDragDropData) => void = null;
 
-  private _widget: Widget = null;
+  private _node: Node = null;
+  private _context: any = null;
 }
 
 
 /**
- * A handler that provides a simple interface to make a widget draggable.
+ * A handler that provides a simple interface to make a node draggable.
  *
  * #### Example
  * ```typescript
@@ -554,7 +548,7 @@ class DropHandler implements IDisposable {
  *   constructor() {
  *     super();
  *     this._payload = () => { return new Widget(); };
- *     this._dragHandler = new DragHandler(this);
+ *     this._dragHandler = new DragHandler(this.node, this);
  *     this._dragHandler.onDragStart = this._onDragStart;
  *     this._dragHandler.onDragEnd = this._onDragEnd;
  *   }
@@ -597,35 +591,38 @@ class DragHandler implements IDisposable {
   /**
    * Construct a new drag handler.
    *
-   * @param widget - The widget to associate with the drop handler.
+   * @param node - The node that is being dragged.
+   *
+   * @param context - The context within which to fire event handlers.
    */
-  constructor(widget: Widget) {
-    this._widget = widget;
-    widget.node.addEventListener('mousedown', this);
+  constructor(node: Node, context: any) {
+    this._node = node;
+    this._context =  context;
+    node.addEventListener('mousedown', this);
   }
 
   /**
    * Dispose of the resources the drag handler created.
    */
   dispose(): void {
-    this._widget.node.removeEventListener('mousedown', this);
-    this._widget = null;
+    this._node.removeEventListener('mousedown', this);
+    this._node = null;
+    this._context = null;
   }
 
   /**
    * Check if a drag handler is disposed.
    */
   get isDisposed(): boolean {
-    return this._widget === null;
+    return this._node === null;
   }
 
   /**
    * Create an HTML element that will follow the cursor in drag/drop operations.
    */
   ghost(): HTMLElement {
-    let widget = this._widget;
-    let node = widget.node.cloneNode(true) as HTMLElement;
-    let rect = widget.node.getBoundingClientRect();
+    let node = this._node.cloneNode(true) as HTMLElement;
+    let rect = (this._node as HTMLElement).getBoundingClientRect();
     node.style.height = `${rect.height}px`;
     node.style.width = `${rect.width}px`;
     node.style.opacity = '0.75';
@@ -639,8 +636,8 @@ class DragHandler implements IDisposable {
    *
    * #### Notes
    * This method implements the DOM `EventListener` interface and is
-   * called in response to events on the drag handler's parent widget's DOM
-   * node. It should not be called directly by user code.
+   * called in response to events on the drag handler's parent DOM node. It
+   * should not be called directly by user code.
    */
   handleEvent(event: Event): void {
     switch (event.type) {
@@ -663,12 +660,8 @@ class DragHandler implements IDisposable {
    *
    * @param dragData - A reference to the drag/drop context used to pass data
    * between the different stages of the drag and drop life cycle.
-   *
-   * #### Notes
-   * This method should be overwritten per drop handler instance if a widget
-   * wants to listen for it.
    */
-  onDragStart(event: MouseEvent, dragData: IDragDropData): void { }
+  onDragStart: (event: MouseEvent, dragData: IDragDropData) => void = null;
 
   /**
    * Handle the drag end event.
@@ -677,12 +670,8 @@ class DragHandler implements IDisposable {
    *
    * @param dragData - A reference to the drag/drop context used to pass data
    * between the different stages of the drag and drop life cycle.
-   *
-   * #### Notes
-   * This method should be overwritten per drop handler instance if a widget
-   * wants to listen for it.
    */
-  onDragEnd(event: MouseEvent, dragData: IDragDropData): void { }
+  onDragEnd: (event: MouseEvent, dragData: IDragDropData) => void = null;
 
   /**
    * Start a drag operation manually.
@@ -703,7 +692,9 @@ class DragHandler implements IDisposable {
     this._dragData.ghost = this.ghost();
     this._dragData.ghost.style.position = 'absolute';
     document.body.appendChild(this._dragData.ghost);
-    this.onDragStart.call(this._widget, event, this._dragData);
+    if (this.onDragStart) {
+      this.onDragStart.call(this._context, event, this._dragData);
+    }
   }
 
   /**
@@ -758,11 +749,14 @@ class DragHandler implements IDisposable {
         document.body.removeChild(this._dragData.ghost);
       }
       DropHandler.deploy('drop', event, this._dragData);
-      this.onDragEnd.call(this._widget, event, this._dragData);
+      if (this.onDragEnd) {
+        this.onDragEnd.call(this._context, event, this._dragData);
+      }
     }
     this._dragData = null;
   }
 
   private _dragData: IDragDropData = null;
-  private _widget: Widget;
+  private _node: Node = null;
+  private _context: any = null;
 }
