@@ -19,6 +19,11 @@ import './index.css';
  */
 const OVERRIDE_CURSOR_CLASS = 'p-mod-override-cursor';
 
+/**
+ * The class name added to the ghost node that follows the cursor during drags.
+ */
+const DRAG_GHOST_CLASS = 'p-mod-ghost';
+
 
 /**
  * The id for the active cursor override.
@@ -271,34 +276,38 @@ function sizeLimits(node: HTMLElement): ISizeLimits {
 export
 interface IDragDropData {
   /**
-   * Flag indicating whether a drag operation has begun.
-   *
-   * #### Notes
-   * This flag should not need to be used by any clients of this library.
-   */
-  started: boolean;
-  /**
    * A reference to the HTML element that follows the cursor.
    */
   ghost: HTMLElement,
+
   /**
    * An `IDisposable` reference to facilitate use of `overrideCursor`.
    *
    * **See also:** [[overrideCursor]]
    */
   override?: IDisposable;
+
   /**
    * A key/value map of MIMEs/payloads for different drop targets.
    */
   payload: { [mime: string]: any };
+
   /**
    * The starting X coordinate of a drag operation.
    */
   startX: number;
+
   /**
    * The starting Y coordinate of a drag operation.
    */
   startY: number;
+}
+
+interface IPrivateDragDropData extends IDragDropData {
+  /**
+   * Flag indicating whether a drag operation has begun.
+   */
+  _started: boolean;
 }
 
 
@@ -330,7 +339,7 @@ var dropHandlerRegistry: {
  * class DroppableWidget extends Widget {
  *   constructor() {
  *     super();
- *     this._dropHandler = new DropHandler(this);
+ *     this._dropHandler = new DropHandler(this.node, this);
  *     this._dropHandler.onDragEnter = this._onDragEnter;
  *     this._dropHandler.onDragLeave = this._onDragLeave;
  *     this._dropHandler.onDrag = this._onDrag;
@@ -391,6 +400,18 @@ class DropHandler implements IDisposable {
   }
 
   /**
+   * Expire the cached values tied to a specific drag/drop lifecycle.
+   *
+   * #### Notes
+   * This method should not need to be used by any clients of this library.
+   */
+  static invalidateCache(): void {
+    Object.keys(dropHandlerRegistry).forEach(key => {
+      delete dropHandlerRegistry[key].rect;
+    });
+  }
+
+  /**
    * Deploy a drag event to the relevant drop handlers.
    *
    * @param action - The event type being deployed (either `'drag'` or
@@ -399,7 +420,7 @@ class DropHandler implements IDisposable {
    * @param event - The native mouse event that underlies the operation.
    *
    * @param dragData - A reference to the drag/drop context used to pass data
-   * between the different stages of the drag and drop life cycle.
+   * between the different stages of the drag and drop lifecycle.
    *
    * #### Notes
    * This method should not need to be used by any clients of this library.
@@ -484,7 +505,7 @@ class DropHandler implements IDisposable {
    * @param event - The native mouse event that underlies the drag operation.
    *
    * @param dragData - A reference to the drag/drop context used to pass data
-   * between the different stages of the drag and drop life cycle.
+   * between the different stages of the drag and drop lifecycle.
    */
   onDragEnter: (event: MouseEvent, dragData: IDragDropData) => void = null;
 
@@ -494,7 +515,7 @@ class DropHandler implements IDisposable {
    * @param event - The native mouse event that underlies the drag operation.
    *
    * @param dragData - A reference to the drag/drop context used to pass data
-   * between the different stages of the drag and drop life cycle.
+   * between the different stages of the drag and drop lifecycle.
    */
   onDrag: (event: MouseEvent, dragData: IDragDropData) => void = null;
 
@@ -504,7 +525,7 @@ class DropHandler implements IDisposable {
    * @param event - The native mouse event that underlies the drag operation.
    *
    * @param dragData - A reference to the drag/drop context used to pass data
-   * between the different stages of the drag and drop life cycle.
+   * between the different stages of the drag and drop lifecycle.
    */
   onDragLeave: (event: MouseEvent, dragData: IDragDropData) => void = null;
 
@@ -514,7 +535,7 @@ class DropHandler implements IDisposable {
    * @param event - The native mouse event that underlies the drop operation.
    *
    * @param dragData - A reference to the drag/drop context used to pass data
-   * between the different stages of the drag and drop life cycle.
+   * between the different stages of the drag and drop lifecycle.
    */
   onDrop: (event: MouseEvent, dragData: IDragDropData) => void = null;
 
@@ -613,7 +634,7 @@ class DragHandler implements IDisposable {
     let rect = (this._node as HTMLElement).getBoundingClientRect();
     node.style.height = `${rect.height}px`;
     node.style.width = `${rect.width}px`;
-    node.style.opacity = '0.75';
+    node.classList.add(DRAG_GHOST_CLASS);
     return node;
   }
 
@@ -647,7 +668,7 @@ class DragHandler implements IDisposable {
    * @param event - The native mouse event that underlies the drag operation.
    *
    * @param dragData - A reference to the drag/drop context used to pass data
-   * between the different stages of the drag and drop life cycle.
+   * between the different stages of the drag and drop lifecycle.
    */
   onDragStart: (event: MouseEvent, dragData: IDragDropData) => void = null;
 
@@ -657,7 +678,7 @@ class DragHandler implements IDisposable {
    * @param event - The native mouse event that underlies the drag operation.
    *
    * @param dragData - A reference to the drag/drop context used to pass data
-   * between the different stages of the drag and drop life cycle.
+   * between the different stages of the drag and drop lifecycle.
    */
   onDragEnd: (event: MouseEvent, dragData: IDragDropData) => void = null;
 
@@ -673,16 +694,31 @@ class DragHandler implements IDisposable {
    * **See also:** [[autostart]]
    */
   startDrag(event: MouseEvent): void {
-    if (this._dragData.started) {
+    if (!this._dragData) {
+      this._createDragData(event);
+    }
+    if (this._dragData._started) {
       return;
     }
-    this._dragData.started = true;
+    this._dragData._started = true;
     this._dragData.ghost = this.ghost();
-    this._dragData.ghost.style.position = 'absolute';
     document.body.appendChild(this._dragData.ghost);
     if (this.onDragStart) {
       this.onDragStart.call(this._context, event, this._dragData);
     }
+  }
+
+  /**
+   * Create drag data for a drag and drop lifecycle.
+   */
+  private _createDragData(event: MouseEvent): void {
+    this._dragData = {
+      _started: false,
+      ghost: null,
+      payload: Object.create(null),
+      startX: event.clientX,
+      startY: event.clientY
+    };
   }
 
   /**
@@ -696,20 +732,14 @@ class DragHandler implements IDisposable {
     event.stopPropagation();
     document.addEventListener('mousemove', this, true);
     document.addEventListener('mouseup', this, true);
-    this._dragData = {
-      started: false,
-      ghost: null,
-      payload: Object.create(null),
-      startX: event.clientX,
-      startY: event.clientY
-    };
+    this._createDragData(event);
   }
 
   /**
    * Handle the `'mousemove'` event for the drag handler.
    */
   private _evtMouseMove(event: MouseEvent): void {
-    if (!this._dragData.started) {
+    if (!this._dragData._started) {
       if (!this.autostart) {
         return;
       }
@@ -721,8 +751,8 @@ class DragHandler implements IDisposable {
         return;
       }
     }
-    this._dragData.ghost.style.top = `${event.clientY - 10}px`;
-    this._dragData.ghost.style.left = `${event.clientX - 10}px`;
+    this._dragData.ghost.style.top = `${event.clientY}px`;
+    this._dragData.ghost.style.left = `${event.clientX}px`;
     DropHandler.deploy('drag', event, this._dragData);
   }
 
@@ -732,7 +762,7 @@ class DragHandler implements IDisposable {
   private _evtMouseUp(event: MouseEvent): void {
     document.removeEventListener('mousemove', this, true);
     document.removeEventListener('mouseup', this, true);
-    if (this._dragData.started) {
+    if (this._dragData._started) {
       if (this._dragData.ghost) {
         document.body.removeChild(this._dragData.ghost);
       }
@@ -740,11 +770,12 @@ class DragHandler implements IDisposable {
       if (this.onDragEnd) {
         this.onDragEnd.call(this._context, event, this._dragData);
       }
+      DropHandler.invalidateCache();
     }
     this._dragData = null;
   }
 
-  private _dragData: IDragDropData = null;
+  private _dragData: IPrivateDragDropData = null;
   private _node: Node = null;
   private _context: any = null;
 }
