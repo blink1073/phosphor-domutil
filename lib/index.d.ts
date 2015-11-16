@@ -163,13 +163,36 @@ export interface ISizeLimits {
  */
 export declare function sizeLimits(node: HTMLElement): ISizeLimits;
 export interface IDragDropData {
+    /**
+     * Flag indicating whether a drag operation has begun.
+     *
+     * #### Notes
+     * This flag should not need to be used by any clients of this library.
+     */
     started: boolean;
+    /**
+     * A reference to the HTML element that follows the cursor.
+     */
     ghost: HTMLElement;
+    /**
+     * An `IDisposable` reference to facilitate use of `overrideCursor`.
+     *
+     * **See also:** [[overrideCursor]]
+     */
     override?: IDisposable;
+    /**
+     * A key/value map of MIMEs/payloads for different drop targets.
+     */
     payload: {
         [mime: string]: any;
     };
+    /**
+     * The starting X coordinate of a drag operation.
+     */
     startX: number;
+    /**
+     * The starting Y coordinate of a drag operation.
+     */
     startY: number;
 }
 /**
@@ -216,26 +239,102 @@ export declare class DropHandler implements IDisposable {
     static idProperty: Property<DropHandler, number>;
     /**
      * Add a drop handler instance to the registry.
+     *
+     * @param handler - The drop handler being registered.
+     *
      * #### Notes
      * This method should not need to be used by any clients of this library.
      */
     static register(handler: DropHandler): void;
     /**
      * Remove a drop handler instance from the registry.
+     *
+     * @param handler - The drop handler being deregistered.
+     *
      * #### Notes
      * This method should not need to be used by any clients of this library.
      */
     static deregister(handler: DropHandler): void;
     /**
      * Deploy a drag event to the relevant drop handlers.
+     *
+     * @param action - The event type being deployed (either `'drag'` or
+     * `'drop'`).
+     *
+     * @param event - The native mouse event that underlies the operation.
+     *
+     * @param dragData - A reference to the drag/drop context used to pass data
+     * between the different stages of the drag and drop life cycle.
+     *
+     * #### Notes
+     * This method should not need to be used by any clients of this library.
      */
     static deploy(action: string, event: MouseEvent, dragData: IDragDropData): void;
+    /**
+     * Construct a new drop handler.
+     *
+     * @param widget - The widget to associate with the drop handler.
+     */
     constructor(widget: Widget);
+    /**
+     * Dispose of the reference to a drop handler in the registry.
+     */
     dispose(): void;
+    /**
+     * Check if a drop handler is disposed.
+     */
     isDisposed: boolean;
+    /**
+     * Handle the drag enter event.
+     *
+     * @param event - The native mouse event that underlies the drag operation.
+     *
+     * @param dragData - A reference to the drag/drop context used to pass data
+     * between the different stages of the drag and drop life cycle.
+     *
+     * #### Notes
+     * This method should be overwritten per drop handler instance if a widget
+     * wants to listen for it.
+     */
     onDragEnter(event: MouseEvent, dragData: IDragDropData): void;
+    /**
+     * Handle the drag event.
+     *
+     * @param event - The native mouse event that underlies the drag operation.
+     *
+     * @param dragData - A reference to the drag/drop context used to pass data
+     * between the different stages of the drag and drop life cycle.
+     *
+     * #### Notes
+     * This method should be overwritten per drop handler instance if a widget
+     * wants to listen for it.
+     */
     onDrag(event: MouseEvent, dragData: IDragDropData): void;
+    /**
+     * Handle the drag leave event.
+     *
+     * @param event - The native mouse event that underlies the drag operation.
+     *
+     * @param dragData - A reference to the drag/drop context used to pass data
+     * between the different stages of the drag and drop life cycle.
+     *
+     * #### Notes
+     * This method should be overwritten per drop handler instance if a widget
+     * wants to listen for it.
+     */
     onDragLeave(event: MouseEvent, dragData: IDragDropData): void;
+    /**
+     * Handle the drop event.
+     *
+     * @param event - The native mouse event that underlies the drop operation.
+     *
+     * @param dragData - A reference to the drag/drop context used to pass data
+     * between the different stages of the drag and drop life cycle.
+     *
+     * #### Notes
+     * This method should be overwritten per drop handler instance if a widget
+     * wants to listen for it.
+     */
     onDrop(event: MouseEvent, dragData: IDragDropData): void;
     private _widget;
 }
@@ -248,7 +347,7 @@ export declare class DropHandler implements IDisposable {
  * import { Widget } from 'phosphor-widget';
  *
  * class DraggableWidget extends Widget {
- *   constructor(label: string, factory: () => Widget) {
+ *   constructor() {
  *     super();
  *     this._payload = () => { return new Widget(); };
  *     this._dragHandler = new DragHandler(this);
@@ -272,18 +371,100 @@ export declare class DropHandler implements IDisposable {
  * ```
  */
 export declare class DragHandler implements IDisposable {
+    /**
+     * Flag to determine if a drag handler will automatically catch drag events.
+     *
+     * #### Notes
+     * If set to `false`, dragging will not automatically begin once the
+     * `threshold` has been crossed. The `startDrag` method will need to be
+     * invoked in order to inform the drag handler that a drag operation has
+     * started.
+     *
+     * **See also:** [[startDrag]]
+     */
     autostart: boolean;
+    /**
+     * The default dragging threshold in pixels.
+     */
     dragThreshold: number;
+    /**
+     * Construct a new drag handler.
+     *
+     * @param widget - The widget to associate with the drop handler.
+     */
     constructor(widget: Widget);
+    /**
+     * Dispose of the resources the drag handler created.
+     */
     dispose(): void;
+    /**
+     * Check if a drag handler is disposed.
+     */
     isDisposed: boolean;
+    /**
+     * Create an HTML element that will follow the cursor in drag/drop operations.
+     */
     ghost(): HTMLElement;
+    /**
+     * Handle the DOM events for the drag handler.
+     *
+     * @param event - The DOM event sent to the drag handler.
+     *
+     * #### Notes
+     * This method implements the DOM `EventListener` interface and is
+     * called in response to events on the drag handler's parent widget's DOM
+     * node. It should not be called directly by user code.
+     */
     handleEvent(event: Event): void;
+    /**
+     * Handle the drag start event.
+     *
+     * @param event - The native mouse event that underlies the drag operation.
+     *
+     * @param dragData - A reference to the drag/drop context used to pass data
+     * between the different stages of the drag and drop life cycle.
+     *
+     * #### Notes
+     * This method should be overwritten per drop handler instance if a widget
+     * wants to listen for it.
+     */
     onDragStart(event: MouseEvent, dragData: IDragDropData): void;
+    /**
+     * Handle the drag end event.
+     *
+     * @param event - The native mouse event that underlies the drag operation.
+     *
+     * @param dragData - A reference to the drag/drop context used to pass data
+     * between the different stages of the drag and drop life cycle.
+     *
+     * #### Notes
+     * This method should be overwritten per drop handler instance if a widget
+     * wants to listen for it.
+     */
     onDragEnd(event: MouseEvent, dragData: IDragDropData): void;
+    /**
+     * Start a drag operation manually.
+     *
+     * @param event - The native mouse event that underlies the drag operation.
+     *
+     * #### Notes
+     * This method only needs to be used if the `autostart` flag for a drag
+     * handler has been set to `false`.
+     *
+     * **See also:** [[autostart]]
+     */
     startDrag(event: MouseEvent): void;
+    /**
+     * Handle the `'mousedown'` event for the drag handler.
+     */
     private _evtMouseDown(event);
+    /**
+     * Handle the `'mousemove'` event for the drag handler.
+     */
     private _evtMouseMove(event);
+    /**
+     * Handle the `'mouseup'` event for the drag handler.
+     */
     private _evtMouseUp(event);
     private _dragData;
     private _widget;
