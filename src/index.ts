@@ -287,49 +287,112 @@ interface IDragDropData {
 }
 
 
+/**
+ * The id for drop handle instances.
+ */
+var dropHandlerID = 0;
+
+/**
+ * The registry that holds data for drop handlers and allows for data passing.
+ */
+var dropHandlerRegistry: {
+  [id: string]: {
+    entered: boolean,
+    handler: DropHandler,
+    rect: ClientRect
+  }
+} = Object.create(null);
+
+
+/**
+ * A handler that provides a simple interface to make a widget a drop target.
+ *
+ * #### Example
+ * ```typescript
+ * import { DropHandler, IDragDropData } from 'phosphor-domutil';
+ * import { Widget } from 'phosphor-widget';
+ *
+ * class DroppableWidget extends Widget {
+ *   constructor() {
+ *     super();
+ *     this._dropHandler = new DropHandler(this);
+ *     this._dropHandler.onDragEnter = this._onDragEnter;
+ *     this._dropHandler.onDragLeave = this._onDragLeave;
+ *     this._dropHandler.onDrag = this._onDrag;
+ *     this._dropHandler.onDrop = this._onDrop;
+ *   }
+ *   dispose(): void {
+ *     this._dropHandler.dispose();
+ *     super.dispose();
+ *   }
+ *   private _onDragEnter(event: MouseEvent, dragData: IDragDropData): void {
+ *     console.log('drag enter', dragData);
+ *   }
+ *   private _onDragLeave(event: MouseEvent, dragData: IDragDropData): void {
+ *     console.log('drag leave', dragData);
+ *   }
+ *   private _onDrag(event: MouseEvent, dragData: IDragDropData): void {
+ *     console.log('drag', dragData);
+ *   }
+ *   private _onDrop(event: MouseEvent, dragData: IDragDropData): void {
+ *     console.log('drop', dragData);
+ *   }
+ *   private _dropHandler: DropHandler;
+ * }
+ * ```
+ */
 export
-class DroppableHandler implements IDisposable {
-
-  static id = 0;
-
-  static idProperty = new Property<DroppableHandler, number>({
+class DropHandler implements IDisposable {
+  /**
+   * The property descriptor for the `id` attached property.
+   */
+  static idProperty = new Property<DropHandler, number>({
     name: 'id',
     value: null
   });
 
-  static droppables: {
-    [id: string]: {
-      entered: boolean,
-      handler: DroppableHandler,
-      rect: ClientRect
-    }
-  } = Object.create(null);
-
-  static register(handler: DroppableHandler): void {
-    let id = ++DroppableHandler.id;
-    DroppableHandler.idProperty.set(handler, id);
-    DroppableHandler.droppables[id] = {
+  /**
+   * Add a drop handler instance to the registry.
+   * #### Notes
+   * This method should not need to be used by any clients of this library.
+   */
+  static register(handler: DropHandler): void {
+    let id = ++dropHandlerID;
+    DropHandler.idProperty.set(handler, id);
+    dropHandlerRegistry[id] = {
       entered: false,
       handler: handler,
       rect: null
     };
   }
 
-  static deregister(handler: DroppableHandler): void {
-    let id = DroppableHandler.idProperty.get(handler);
-    if (DroppableHandler.droppables[id]) {
-      delete DroppableHandler.droppables[id];
+  /**
+   * Remove a drop handler instance from the registry.
+   * #### Notes
+   * This method should not need to be used by any clients of this library.
+   */
+  static deregister(handler: DropHandler): void {
+    let id = DropHandler.idProperty.get(handler);
+    if (dropHandlerRegistry[id]) {
+      delete dropHandlerRegistry[id];
     }
   }
 
-  static deploy(action: string, event: MouseEvent, data: IDragDropData): void {
+  /**
+   * Deploy a drag event to the relevant drop handlers.
+   */
+  static deploy(action: string, event: MouseEvent, dragData: IDragDropData): void {
     let x = event.clientX;
     let y = event.clientY;
 
-    Object.keys(DroppableHandler.droppables).forEach(key => {
-      // Multiple drop targets might match. This requires thought.
-      let droppable = DroppableHandler.droppables[key];
+    Object.keys(dropHandlerRegistry).forEach(key => {
+
+      // Multiple drop targets might match. For now, all of them will be fired,
+      // but in the future, this behavior might change.
+      let droppable = dropHandlerRegistry[key];
       let widget = droppable.handler._widget;
+
+      // At the beginning of a drag, cache the bounding rectangle.
       if (!droppable.rect) {
         droppable.rect = widget.node.getBoundingClientRect();
       }
@@ -337,30 +400,30 @@ class DroppableHandler implements IDisposable {
       if (x >= left && y >= top && x < right && y < bottom) {
         if (!droppable.entered) {
           droppable.entered = true;
-          droppable.handler.onDragEnter.call(widget, event, data);
+          droppable.handler.onDragEnter.call(widget, event, dragData);
         }
         switch (action) {
         case 'drag':
-          droppable.handler.onDrag.call(widget, event, data);
+          droppable.handler.onDrag.call(widget, event, dragData);
           break;
         case 'drop':
-          droppable.handler.onDrop.call(widget, event, data);
+          droppable.handler.onDrop.call(widget, event, dragData);
           break;
         }
       } else if (droppable.entered) {
         droppable.entered = false;
-        droppable.handler.onDragLeave.call(widget, event, data);
+        droppable.handler.onDragLeave.call(widget, event, dragData);
       }
     });
   }
 
   constructor(widget: Widget) {
     this._widget = widget;
-    DroppableHandler.register(this);
+    DropHandler.register(this);
   }
 
   dispose(): void {
-    DroppableHandler.deregister(this);
+    DropHandler.deregister(this);
     this._widget = null;
   }
 
@@ -380,6 +443,38 @@ class DroppableHandler implements IDisposable {
 }
 
 
+/**
+ * A handler that provides a simple interface to make a widget draggable.
+ *
+ * #### Example
+ * ```typescript
+ * import { DragHandler, IDragDropData } from 'phosphor-domutil';
+ * import { Widget } from 'phosphor-widget';
+ *
+ * class DraggableWidget extends Widget {
+ *   constructor(label: string, factory: () => Widget) {
+ *     super();
+ *     this._payload = () => { return new Widget(); };
+ *     this._dragHandler = new DragHandler(this);
+ *     this._dragHandler.onDragStart = this._onDragStart;
+ *     this._dragHandler.onDragEnd = this._onDragEnd;
+ *   }
+ *   dispose(): void {
+ *     this._dragHandler.dispose();
+ *     super.dispose();
+ *   }
+ *   private _onDragStart(event: MouseEvent, dragData: IDragDropData): void {
+ *     dragData.payload['application/x-phosphor-example'] = this._payload;
+ *     console.log('drag start', dragData);
+ *   }
+ *   private _onDragEnd(event: MouseEvent, dragData: IDragDropData): void {
+ *     console.log('drag end', dragData);
+ *   }
+ *   private _dragHandler: DragHandler = null;
+ *   private _payload: () => Widget = null;
+ * }
+ * ```
+ */
 export
 class DragHandler implements IDisposable {
 
@@ -474,7 +569,7 @@ class DragHandler implements IDisposable {
     // 10px is arbitary, this might require configuration.
     this._dragData.ghost.style.top = `${event.clientY - 10}px`;
     this._dragData.ghost.style.left = `${event.clientX - 10}px`;
-    DroppableHandler.deploy('drag', event, this._dragData);
+    DropHandler.deploy('drag', event, this._dragData);
   }
 
   private _evtMouseUp(event: MouseEvent): void {
@@ -484,7 +579,7 @@ class DragHandler implements IDisposable {
       if (this._dragData.ghost) {
         document.body.removeChild(this._dragData.ghost);
       }
-      DroppableHandler.deploy('drop', event, this._dragData);
+      DropHandler.deploy('drop', event, this._dragData);
       this.onDragEnd.call(this._widget, event, this._dragData);
     }
     this._dragData = null;

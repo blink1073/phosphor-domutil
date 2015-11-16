@@ -172,19 +172,64 @@ export interface IDragDropData {
     startX: number;
     startY: number;
 }
-export declare class DroppableHandler implements IDisposable {
-    static id: number;
-    static idProperty: Property<DroppableHandler, number>;
-    static droppables: {
-        [id: string]: {
-            entered: boolean;
-            handler: DroppableHandler;
-            rect: ClientRect;
-        };
-    };
-    static register(handler: DroppableHandler): void;
-    static deregister(handler: DroppableHandler): void;
-    static deploy(action: string, event: MouseEvent, data: IDragDropData): void;
+/**
+ * A handler that provides a simple interface to make a widget a drop target.
+ *
+ * #### Example
+ * ```typescript
+ * import { DropHandler, IDragDropData } from 'phosphor-domutil';
+ * import { Widget } from 'phosphor-widget';
+ *
+ * class DroppableWidget extends Widget {
+ *   constructor() {
+ *     super();
+ *     this._dropHandler = new DropHandler(this);
+ *     this._dropHandler.onDragEnter = this._onDragEnter;
+ *     this._dropHandler.onDragLeave = this._onDragLeave;
+ *     this._dropHandler.onDrag = this._onDrag;
+ *     this._dropHandler.onDrop = this._onDrop;
+ *   }
+ *   dispose(): void {
+ *     this._dropHandler.dispose();
+ *     super.dispose();
+ *   }
+ *   private _onDragEnter(event: MouseEvent, dragData: IDragDropData): void {
+ *     console.log('drag enter', dragData);
+ *   }
+ *   private _onDragLeave(event: MouseEvent, dragData: IDragDropData): void {
+ *     console.log('drag leave', dragData);
+ *   }
+ *   private _onDrag(event: MouseEvent, dragData: IDragDropData): void {
+ *     console.log('drag', dragData);
+ *   }
+ *   private _onDrop(event: MouseEvent, dragData: IDragDropData): void {
+ *     console.log('drop', dragData);
+ *   }
+ *   private _dropHandler: DropHandler;
+ * }
+ * ```
+ */
+export declare class DropHandler implements IDisposable {
+    /**
+     * The property descriptor for the `id` attached property.
+     */
+    static idProperty: Property<DropHandler, number>;
+    /**
+     * Add a drop handler instance to the registry.
+     * #### Notes
+     * This method should not need to be used by any clients of this library.
+     */
+    static register(handler: DropHandler): void;
+    /**
+     * Remove a drop handler instance from the registry.
+     * #### Notes
+     * This method should not need to be used by any clients of this library.
+     */
+    static deregister(handler: DropHandler): void;
+    /**
+     * Deploy a drag event to the relevant drop handlers.
+     */
+    static deploy(action: string, event: MouseEvent, dragData: IDragDropData): void;
     constructor(widget: Widget);
     dispose(): void;
     isDisposed: boolean;
@@ -194,6 +239,38 @@ export declare class DroppableHandler implements IDisposable {
     onDrop(event: MouseEvent, dragData: IDragDropData): void;
     private _widget;
 }
+/**
+ * A handler that provides a simple interface to make a widget draggable.
+ *
+ * #### Example
+ * ```typescript
+ * import { DragHandler, IDragDropData } from 'phosphor-domutil';
+ * import { Widget } from 'phosphor-widget';
+ *
+ * class DraggableWidget extends Widget {
+ *   constructor(label: string, factory: () => Widget) {
+ *     super();
+ *     this._payload = () => { return new Widget(); };
+ *     this._dragHandler = new DragHandler(this);
+ *     this._dragHandler.onDragStart = this._onDragStart;
+ *     this._dragHandler.onDragEnd = this._onDragEnd;
+ *   }
+ *   dispose(): void {
+ *     this._dragHandler.dispose();
+ *     super.dispose();
+ *   }
+ *   private _onDragStart(event: MouseEvent, dragData: IDragDropData): void {
+ *     dragData.payload['application/x-phosphor-example'] = this._payload;
+ *     console.log('drag start', dragData);
+ *   }
+ *   private _onDragEnd(event: MouseEvent, dragData: IDragDropData): void {
+ *     console.log('drag end', dragData);
+ *   }
+ *   private _dragHandler: DragHandler = null;
+ *   private _payload: () => Widget = null;
+ * }
+ * ```
+ */
 export declare class DragHandler implements IDisposable {
     autostart: boolean;
     dragThreshold: number;
