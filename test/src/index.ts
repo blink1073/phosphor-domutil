@@ -220,12 +220,22 @@ describe('phosphor-domutil', () => {
         document.body.appendChild(node);
         let { top, right } = node.getBoundingClientRect();
         handler.onDragStart = (event: MouseEvent, dragData: IDragDropData) => {
-          expect(dragData.startX).to.equal(right);
+          expect(event.clientX).to.equal(right + handler.dragThreshold);
           expect(dragData.startY).to.equal(top);
           done();
         };
+        // Ignore anything but a primary click.
+        triggerMouseEvent(node, 'mousedown', {
+          button: 1,
+          clientX: right,
+          clientY: top
+        });
         triggerMouseEvent(node, 'mousedown', {
           clientX: right,
+          clientY: top
+        });
+        triggerMouseEvent(document.body, 'mousemove', {
+          clientX: right + 1,
           clientY: top
         });
         triggerMouseEvent(document.body, 'mousemove', {
@@ -271,7 +281,7 @@ describe('phosphor-domutil', () => {
       it('should trigger a drag when autostart is false', (done) => {
         let node = document.createElement('div');
         let handler = new DragHandler(node, null);
-        handler.autostart = true;
+        handler.autostart = false;
         node.style.height = '100px';
         node.style.width = '100px';
         document.body.appendChild(node);
@@ -289,6 +299,56 @@ describe('phosphor-domutil', () => {
           clientX: belowThreshold,
           clientY: top
         });
+        handler.startDrag(event);
+        triggerMouseEvent(document.body, 'mouseup');
+        handler.dispose();
+      });
+
+      it('should trigger a drag without needing a mousedown', (done) => {
+        let node = document.createElement('div');
+        let handler = new DragHandler(node, null);
+        handler.autostart = false;
+        node.style.height = '100px';
+        node.style.width = '100px';
+        document.body.appendChild(node);
+        let { top, right } = node.getBoundingClientRect();
+        handler.onDragStart = (event: MouseEvent, dragData: IDragDropData) => {
+          expect(event.clientX).to.equal(right);
+          done();
+        };
+        // Ignore mousemove events before startDrag if autostart is false.
+        triggerMouseEvent(document.body, 'mousemove', {
+          clientX: right,
+          clientY: top
+        });
+        let event = triggerMouseEvent(document.body, 'mousemove', {
+          clientX: right,
+          clientY: top
+        });
+        handler.startDrag(event);
+        triggerMouseEvent(document.body, 'mouseup');
+        handler.dispose();
+      });
+
+      it('should be safely invokable multiple times', (done) => {
+        let node = document.createElement('div');
+        let handler = new DragHandler(node, null);
+        handler.autostart = true;
+        node.style.height = '100px';
+        node.style.width = '100px';
+        document.body.appendChild(node);
+        let { top, right } = node.getBoundingClientRect();
+        handler.onDragStart = (event: MouseEvent, dragData: IDragDropData) => {
+          expect(event.clientX).to.equal(right);
+          done();
+        };
+        let event = triggerMouseEvent(document.body, 'mousemove', {
+          clientX: right,
+          clientY: top
+        });
+        handler.startDrag(event);
+        handler.startDrag(event);
+        handler.startDrag(event);
         handler.startDrag(event);
         triggerMouseEvent(document.body, 'mouseup');
         handler.dispose();
@@ -438,6 +498,44 @@ describe('phosphor-domutil', () => {
           clientY: dropRect.bottom + 1
         });
         triggerMouseEvent(document.body, 'mouseup');
+        drag.dispose();
+        drop.dispose();
+      });
+
+    });
+
+    describe('#onDrop', () => {
+
+      it('should be invoked when an item is dropped', (done) => {
+        let draggable = document.createElement('div');
+        let droppable = document.createElement('div');
+        let drag = new DragHandler(draggable, null);
+        let drop = new DropHandler(droppable, null);
+        draggable.style.height = '100px';
+        draggable.style.width = '100px';
+        droppable.style.height = '100px';
+        droppable.style.width = '100px';
+        document.body.appendChild(draggable);
+        document.body.appendChild(droppable);
+        let dragRect = draggable.getBoundingClientRect();
+        let dropRect = droppable.getBoundingClientRect();
+        drop.onDrop = (event: MouseEvent, dragData: IDragDropData) => {
+          expect(dragData.startX).to.equal(dragRect.right);
+          expect(dragData.startY).to.equal(dragRect.top);
+          done();
+        };
+        triggerMouseEvent(draggable, 'mousedown', {
+          clientX: dragRect.right,
+          clientY: dragRect.top
+        });
+        triggerMouseEvent(document.body, 'mousemove', {
+          clientX: dragRect.right + drag.dragThreshold,
+          clientY: dragRect.top
+        });
+        triggerMouseEvent(document.body, 'mouseup', {
+          clientX: dropRect.left,
+          clientY: dropRect.top
+        });
         drag.dispose();
         drop.dispose();
       });
