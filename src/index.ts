@@ -274,21 +274,21 @@ function sizeLimits(node: HTMLElement): ISizeLimits {
 
 
 /**
- * The data that is passed to events within a single drag and drop lifecycle.
+ * The data object for a single drag and drop life cycle.
  */
 export
 interface IDragDropData {
   /**
    * A reference to the HTML element that follows the cursor.
    */
-  ghost: HTMLElement,
+  ghost: HTMLElement;
 
   /**
-   * An `IDisposable` reference to facilitate use of `overrideCursor`.
+   * A disposable invoked on drag end.
    *
-   * **See also:** [[overrideCursor]]
+   * This can be useful in conjunction with [[overrideCursor]].
    */
-  override?: IDisposable;
+  override: IDisposable;
 
   /**
    * A key/value map of MIMEs/payloads for different drop targets.
@@ -306,6 +306,10 @@ interface IDragDropData {
   startY: number;
 }
 
+
+/**
+ * The internal data object interface for a drag drop.
+ */
 interface IPrivateDragDropData extends IDragDropData {
   /**
    * Flag indicating whether a drag operation has begun.
@@ -315,20 +319,36 @@ interface IPrivateDragDropData extends IDragDropData {
 
 
 /**
- * The id for drop handle instances.
+ * A data record for a drop handler registration.
  */
-var dropHandlerID = 0;
+interface IDropRecord {
+  /**
+   * The drop handler for the record.
+   */
+  handler: DropHandler;
+
+  /**
+   * Whether the drop handler has been entered.
+   */
+  entered: boolean;
+
+  /**
+   * The cached client rectangle for the drop handler.
+   */
+  rect: ClientRect;
+}
+
 
 /**
- * The registry that holds data for drop handlers and allows for data passing.
+ * The id for drop handle instances.
  */
-var dropHandlerRegistry: {
-  [id: string]: {
-    entered: boolean,
-    handler: DropHandler,
-    rect: ClientRect
-  }
-} = Object.create(null);
+let dropHandlerID = 0;
+
+
+/**
+ * The registry of drop records.
+ */
+let dropHandlerRegistry: { [id: string]: IDropRecord } = Object.create(null);
 
 
 /**
@@ -719,6 +739,7 @@ class DragHandler implements IDisposable {
     this._dragData = {
       _started: false,
       ghost: null,
+      override: null,
       payload: Object.create(null),
       startX: event.clientX,
       startY: event.clientY
@@ -775,6 +796,9 @@ class DragHandler implements IDisposable {
       if (this.onDragEnd) {
         this.onDragEnd.call(this._context, event, this._dragData);
       }
+    }
+    if (this._dragData.override) {
+      this._dragData.override.dispose();
     }
     this._dragData = null;
   }
