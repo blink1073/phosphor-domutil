@@ -428,8 +428,9 @@ class DropHandler implements IDisposable {
   static deploy(action: string, event: MouseEvent, dragData: IDragDropData): void {
     let x = event.clientX;
     let y = event.clientY;
+    let keys = Object.keys(dropHandlerRegistry);
 
-    Object.keys(dropHandlerRegistry).forEach(key => {
+    for (let key of keys) {
 
       // Multiple drop targets might match. For now, all of them will be fired,
       // but in the future, this behavior might change.
@@ -467,7 +468,7 @@ class DropHandler implements IDisposable {
           droppable.handler.onDragLeave.call(context, event, dragData);
         }
       }
-    });
+    };
   }
 
   /**
