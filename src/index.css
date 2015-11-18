@@ -8,3 +8,8 @@
 body.p-mod-override-cursor * {
   cursor: inherit !important;
 }
+
+
+.p-mod-ghost {
+  position: absolute;
+}
