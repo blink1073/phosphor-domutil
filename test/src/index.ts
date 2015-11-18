@@ -221,6 +221,8 @@ describe('phosphor-domutil', () => {
         let { top, right } = node.getBoundingClientRect();
         handler.onDragStart = (event: MouseEvent, dragData: IDragDropData) => {
           expect(event.clientX).to.equal(right + handler.dragThreshold);
+          // If the first mousedown works, startY === top + 1 but since it is
+          // not a primary click, startY === top from the second mousedown.
           expect(dragData.startY).to.equal(top);
           done();
         };
@@ -228,7 +230,7 @@ describe('phosphor-domutil', () => {
         triggerMouseEvent(node, 'mousedown', {
           button: 1,
           clientX: right,
-          clientY: top
+          clientY: top + 1
         });
         triggerMouseEvent(node, 'mousedown', {
           clientX: right,
@@ -314,12 +316,15 @@ describe('phosphor-domutil', () => {
         let { top, right } = node.getBoundingClientRect();
         handler.onDragStart = (event: MouseEvent, dragData: IDragDropData) => {
           expect(event.clientX).to.equal(right);
+          // If the first mousemove works, clientY === top + 1 but since
+          // autostart = false, clientY === top from the second mousemove.
+          expect(event.clientY).to.equal(top);
           done();
         };
         // Ignore mousemove events before startDrag if autostart is false.
         triggerMouseEvent(document.body, 'mousemove', {
           clientX: right,
-          clientY: top
+          clientY: top + 1
         });
         let event = triggerMouseEvent(document.body, 'mousemove', {
           clientX: right,
