@@ -273,6 +273,9 @@ function sizeLimits(node: HTMLElement): ISizeLimits {
 }
 
 
+/**
+ * The data that is passed to events within a single drag and drop lifecycle.
+ */
 export
 interface IDragDropData {
   /**
