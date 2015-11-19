@@ -20,15 +20,9 @@ import './index.css';
 const OVERRIDE_CURSOR_CLASS = 'p-mod-override-cursor';
 
 /**
- * The class name added to the ghost node that follows the cursor during drags.
+ * The class name added to a drag ghost node.
  */
-const DRAG_GHOST_CLASS = 'p-mod-ghost';
-
-
-/**
- * The id for the active cursor override.
- */
-let overrideID = 0;
+const GHOST_CLASS = 'p-mod-ghost';
 
 
 /**
@@ -39,7 +33,7 @@ let overrideID = 0;
  * @returns A disposable which will clear the override when disposed.
  *
  * #### Notes
- * The most recent call to `overrideCursor` takes precendence. Disposing
+ * The most recent call to `overrideCursor` takes precedence. Disposing
  * an old override is a no-op and will not effect the current override.
  *
  * #### Example
@@ -66,6 +60,12 @@ function overrideCursor(cursor: string): IDisposable {
     }
   });
 }
+
+
+/**
+ * The internal id for the active cursor override.
+ */
+var overrideID = 0;
 
 
 /**
@@ -96,14 +96,16 @@ function overrideCursor(cursor: string): IDisposable {
  * ```
  */
 export
-function hitTest(node: HTMLElement, clientX: number, clientY: number): boolean {
-  let rect = node.getBoundingClientRect();
-  return (
-    clientX >= rect.left &&
-    clientX < rect.right &&
-    clientY >= rect.top &&
-    clientY < rect.bottom
-  );
+function hitTest(node: Element, clientX: number, clientY: number): boolean {
+  return hitTestRect(node.getBoundingClientRect(), clientX, clientY);
+}
+
+
+/**
+ * Test whether a client position lies within a client rect.
+ */
+function hitTestRect(r: ClientRect, x: number, y: number): boolean {
+  return x >= r.left && x < r.right && y >= r.top && y < r.bottom;
 }
 
 
@@ -274,116 +276,166 @@ function sizeLimits(node: HTMLElement): ISizeLimits {
 
 
 /**
- * The data object for a single drag and drop life cycle.
+ * The data object for a drag and drop operation.
+ *
+ * Instances of this class are created automatically as needed.
  */
 export
-interface IDragDropData {
+class DragData {
   /**
-   * A reference to the HTML element that follows the cursor.
-   */
-  ghost: HTMLElement;
-
-  /**
-   * A disposable invoked on drag end.
+   * Construct a new drag data object.
    *
-   * This can be useful in conjunction with [[overrideCursor]].
+   * @param ghost - The HTML element which follows the cursor.
    */
-  override: IDisposable;
+  constructor(ghost: HTMLElement) {
+    this._ghost = ghost;
+    this._action = 'none';
+    this._override = overrideCursor('no-drop');
+  }
 
   /**
-   * A key/value map of MIMEs/payloads for different drop targets.
+   * The HTML element which follows the cursor.
+   *
+   * #### Notes
+   * This is a read-only property.
    */
-  payload: { [mime: string]: any };
+  get ghost(): HTMLElement {
+    return this._ghost;
+  }
 
   /**
-   * The starting X coordinate of a drag operation.
+   * Get the current drop action.
+   *
+   * #### Notes
+   * This will be one of `'copy'`, `'link'`, `'move'`, or `'none'`.
    */
-  startX: number;
+  get dropAction(): string {
+    return this._action;
+  }
 
   /**
-   * The starting Y coordinate of a drag operation.
+   * Set the current drop action.
+   *
+   * #### Notes
+   * This must be one of `'copy'`, `'link'`, `'move'`, or `'none'`.
+   *
+   * The current cursor style will be updated to reflect the action.
    */
-  startY: number;
+  set dropAction(value: string) {
+    if (value === this._action) {
+      return;
+    }
+    switch (value) {
+    case 'copy':
+      this._action = value;
+      this._override = overrideCursor('copy');
+      break;
+    case 'link':
+      this._action = value;
+      this._override = overrideCursor('alias');
+      break;
+    case 'move':
+      this._action = value;
+      this._override = overrideCursor('move');
+      break;
+    case 'none':
+      this._action = value;
+      this._override = overrideCursor('no-drop');
+      break;
+    }
+  }
+
+  /**
+   * List the mime types added to the drag data.
+   *
+   * @returns A new array of the mime types added to the drag data.
+   */
+  types(): string[] {
+    return Object.keys(this._data);
+  }
+
+  /**
+   * Get the data for a particular mime type.
+   *
+   * @param mime - The mime type for the data.
+   *
+   * @returns The data for the mime type, or `undefined`.
+   */
+  getData(mime: string): any {
+    return this._data[mime];
+  }
+
+  /**
+   * Set the data for a particular mime type.
+   *
+   * @param mime - The mime type for the data.
+   *
+   * @param data - The data for the mime type.
+   */
+  setData(mime: string, data: any): void {
+    this._data[mime] = data;
+  }
+
+  /**
+   * Remove the data for a particular mime type.
+   *
+   * @param mime - The mime type for the data.
+   */
+  clearData(mime: string): void {
+    delete this._data[mime];
+  }
+
+  // friend class DragHandler
+  private _action: string;
+  private _ghost: HTMLElement;
+  private _override: IDisposable;
+  private _data: any = Object.create(null);
 }
 
 
 /**
- * The internal data object interface for a drag drop.
- */
-interface IPrivateDragDropData extends IDragDropData {
-  /**
-   * Flag indicating whether a drag operation has begun.
-   */
-  _started: boolean;
-}
-
-
-/**
- * A data record for a drop handler registration.
- */
-interface IDropRecord {
-  /**
-   * The drop handler for the record.
-   */
-  handler: DropHandler;
-
-  /**
-   * Whether the drop handler has been entered.
-   */
-  entered: boolean;
-
-  /**
-   * The cached client rectangle for the drop handler.
-   */
-  rect: ClientRect;
-}
-
-
-/**
- * The id for drop handle instances.
- */
-let dropHandlerID = 0;
-
-
-/**
- * The registry of drop records.
- */
-let dropHandlerRegistry: { [id: string]: IDropRecord } = Object.create(null);
-
-
-/**
- * A handler that provides a simple interface to make a node a drop target.
+ * A class for implementing drop targets.
  *
  * #### Example
  * ```typescript
- * import { DropHandler, IDragDropData } from 'phosphor-domutil';
- * import { Widget } from 'phosphor-widget';
+ * import {
+ *   DragData, DropHandler
+ * } from 'phosphor-domutil';
  *
- * class DroppableWidget extends Widget {
+ * class DropTarget {
+ *
  *   constructor() {
- *     super();
- *     this._dropHandler = new DropHandler(this.node, this);
+ *     this._node = someNodeFactory();
+ *     this._dropHandler = new DropHandler(this._node, this);
  *     this._dropHandler.onDragEnter = this._onDragEnter;
  *     this._dropHandler.onDragLeave = this._onDragLeave;
- *     this._dropHandler.onDrag = this._onDrag;
+ *     this._dropHandler.onDragOver = this._onDragOver;
  *     this._dropHandler.onDrop = this._onDrop;
  *   }
+ *
  *   dispose(): void {
  *     this._dropHandler.dispose();
- *     super.dispose();
  *   }
- *   private _onDragEnter(event: MouseEvent, dragData: IDragDropData): void {
- *     console.log('drag enter', dragData);
+ *
+ *   private _onDragEnter(event: MouseEvent, data: DragData): void {
+ *     console.log('drag enter', data);
  *   }
- *   private _onDragLeave(event: MouseEvent, dragData: IDragDropData): void {
- *     console.log('drag leave', dragData);
+ *
+ *   private _onDragLeave(event: MouseEvent, data: DragData): void {
+ *     console.log('drag leave', data);
  *   }
- *   private _onDrag(event: MouseEvent, dragData: IDragDropData): void {
- *     console.log('drag', dragData);
+ *
+ *   private _onDragOver(event: MouseEvent, data: DragData): void {
+ *     console.log('drag', data);
  *   }
- *   private _onDrop(event: MouseEvent, dragData: IDragDropData): void {
- *     console.log('drop', dragData);
+ *
+ *   private _onDrop(event: MouseEvent, data: DragData): void {
+ *     console.log(data.getData('text/plain'));
+ *     console.log(data.getData('application/x-my-custom-type'));
+ *     console.log('drop', data);
  *   }
+ *
+ *   private _node: HTMLElement;
  *   private _dropHandler: DropHandler;
  * }
  * ```
@@ -391,275 +443,325 @@ let dropHandlerRegistry: { [id: string]: IDropRecord } = Object.create(null);
 export
 class DropHandler implements IDisposable {
   /**
-   * Add a drop handler instance to the registry.
-   *
-   * @param handler - The drop handler being registered.
-   *
-   * #### Notes
-   * This method should not need to be used by any clients of this library.
-   */
-  static register(handler: DropHandler): void {
-    let id = ++dropHandlerID;
-    handler._id = id;
-    dropHandlerRegistry[id] = {
-      entered: false,
-      handler: handler,
-      rect: null
-    };
-  }
-
-  /**
-   * Remove a drop handler instance from the registry.
-   *
-   * @param handler - The drop handler being deregistered.
-   *
-   * #### Notes
-   * This method should not need to be used by any clients of this library.
-   */
-  static deregister(handler: DropHandler): void {
-    if (handler._id && dropHandlerRegistry[handler._id]) {
-      delete dropHandlerRegistry[handler._id];
-    }
-  }
-
-  /**
-   * Expire the cached values tied to a specific drag/drop lifecycle.
-   *
-   * #### Notes
-   * This method should not need to be used by any clients of this library.
-   */
-  static invalidateCache(): void {
-    Object.keys(dropHandlerRegistry).forEach(key => {
-      dropHandlerRegistry[key].rect = null;
-    });
-  }
-
-  /**
-   * Deploy a drag event to the relevant drop handlers.
-   *
-   * @param action - The event type being deployed (either `'drag'` or
-   * `'drop'`).
-   *
-   * @param event - The native mouse event that underlies the operation.
-   *
-   * @param dragData - A reference to the drag/drop context used to pass data
-   * between the different stages of the drag and drop lifecycle.
-   *
-   * #### Notes
-   * This method should not need to be used by any clients of this library.
-   */
-  static deploy(action: string, event: MouseEvent, dragData: IDragDropData): void {
-    let x = event.clientX;
-    let y = event.clientY;
-    let keys = Object.keys(dropHandlerRegistry);
-
-    for (let key of keys) {
-
-      // Multiple drop targets might match. For now, all of them will be fired,
-      // but in the future, this behavior might change.
-      let droppable = dropHandlerRegistry[key];
-      let context = droppable.handler._context;
-      let node = droppable.handler._node;
-
-      // At the beginning of a drag, cache the bounding rectangle.
-      if (!droppable.rect) {
-        droppable.rect = (node as HTMLElement).getBoundingClientRect();
-      }
-      let { left, top, right, bottom } = droppable.rect;
-      if (x >= left && y >= top && x < right && y < bottom) {
-        if (!droppable.entered) {
-          droppable.entered = true;
-          if (droppable.handler.onDragEnter) {
-            droppable.handler.onDragEnter.call(context, event, dragData);
-          }
-        }
-        switch (action) {
-        case 'drag':
-          if (droppable.handler.onDrag) {
-            droppable.handler.onDrag.call(context, event, dragData);
-          }
-          break;
-        case 'drop':
-          if (droppable.handler.onDrop) {
-            droppable.handler.onDrop.call(context, event, dragData);
-          }
-          break;
-        }
-      } else if (droppable.entered) {
-        droppable.entered = false;
-        if (droppable.handler.onDragLeave) {
-          droppable.handler.onDragLeave.call(context, event, dragData);
-        }
-      }
-    };
-  }
-
-  /**
    * Construct a new drop handler.
    *
-   * @param node - The node that event listeners are attached to.
+   * @param node - The node which acts as the drop target.
    *
-   * @param context - The context within which to fire event handlers.
+   * @param context - The `this` context for the drop handlers.
    */
-  constructor(node: Node, context: any) {
+  constructor(node: HTMLElement, context?: any) {
     this._node = node;
     this._context = context;
-    DropHandler.register(this);
+    dropRegistry[this._id] = createDropRecord(this);
   }
 
   /**
-   * Dispose of the reference to a drop handler in the registry.
+   * Dispose of the resources held by the drop handler.
    */
   dispose(): void {
-    DropHandler.deregister(this);
+    delete dropRegistry[this._id];
+    this.onDragEnter = null;
+    this.onDragOver = null;
+    this.onDragLeave = null;
+    this.onDrop = null;
     this._context = null;
     this._node = null;
   }
 
   /**
-   * Check if a drop handler is disposed.
+   * Test if the drop handler is disposed.
    */
   get isDisposed(): boolean {
     return this._node === null;
   }
 
   /**
-   * Handle the drag enter event.
+   * Get the DOM node for the drop handler.
    *
-   * @param event - The native mouse event that underlies the drag operation.
-   *
-   * @param dragData - A reference to the drag/drop context used to pass data
-   * between the different stages of the drag and drop lifecycle.
+   * #### Notes
+   * This is a read-only property.
    */
-  onDragEnter: (event: MouseEvent, dragData: IDragDropData) => void = null;
+  get node(): HTMLElement {
+    return this._node;
+  }
 
   /**
-   * Handle the drag event.
+   * Get the `this` context for the drop handlers.
    *
-   * @param event - The native mouse event that underlies the drag operation.
-   *
-   * @param dragData - A reference to the drag/drop context used to pass data
-   * between the different stages of the drag and drop lifecycle.
+   * #### Notes
+   * This is a read-only property.
    */
-  onDrag: (event: MouseEvent, dragData: IDragDropData) => void = null;
+  get context(): any {
+    return this._context;
+  }
 
   /**
-   * Handle the drag leave event.
+   * A function called when the drag enters the DOM node.
    *
-   * @param event - The native mouse event that underlies the drag operation.
+   * @param event - The underlying native mouse event.
    *
-   * @param dragData - A reference to the drag/drop context used to pass data
-   * between the different stages of the drag and drop lifecycle.
+   * @param data - The drag data object for the drag operation.
+   *
+   * #### Notes
+   * The creator of the drop handler should assign a function to this
+   * property to handle the drag enter event.
+   *
+   * The handler should update the `dropAction` of the data to reflect
+   * whether or not it can accept drops from the given drag data.
    */
-  onDragLeave: (event: MouseEvent, dragData: IDragDropData) => void = null;
+  onDragEnter: (event: MouseEvent, data: DragData) => void = null;
 
   /**
-   * Handle the drop event.
+   * A function called when the drag moves over the DOM node.
    *
-   * @param event - The native mouse event that underlies the drop operation.
+   * @param event - The underlying native mouse event.
    *
-   * @param dragData - A reference to the drag/drop context used to pass data
-   * between the different stages of the drag and drop lifecycle.
+   * @param data - The drag data object for the drag operation.
+   *
+   * #### Notes
+   * The creator of the drop handler should assign a function to this
+   * property to handle the drag over event.
+   *
+   * The handler should update the `dropAction` of the data if the
+   * result is different than the action set by the enter handler.
    */
-  onDrop: (event: MouseEvent, dragData: IDragDropData) => void = null;
+  onDragOver: (event: MouseEvent, data: DragData) => void = null;
 
-  private _id: number = null;
-  private _node: Node = null;
-  private _context: any = null;
+  /**
+   * A function called when the drag leaves the DOM node.
+   *
+   * @param event - The underlying native mouse event.
+   *
+   * @param data - The drag data object for the drag operation.
+   *
+   * #### Notes
+   * The creator of the drop handler should assign a function to this
+   * property to handle the drag leave event.
+   *
+   * The `dropAction` is set to `'none'` after this handler returns.
+   */
+  onDragLeave: (event: MouseEvent, data: DragData) => void = null;
+
+  /**
+   * A function called when a drop occurs on the DOM node.
+   *
+   * @param event - The underlying native mouse event.
+   *
+   * @param data - The drag data object for the drag operation.
+   *
+   * #### Notes
+   * The creator of the drop handler should assign a function to this
+   * property to handle the drop event.
+   *
+   * The handler should update the `dropAction` of the data if the
+   * result is different than the action which was previously set.
+   *
+   * The `dropAction` will be set to `'none'` if the handler is `null`.
+   */
+  onDrop: (event: MouseEvent, data: DragData) => void = null;
+
+  private _context: any;
+  private _node: HTMLElement;
+  private _id = nextDropID();
+  private _mouseover = false;
 }
 
 
 /**
- * A handler that provides a simple interface to make a node draggable.
+ * A class for implementing drag targets.
  *
  * #### Example
  * ```typescript
- * import { DragHandler, IDragDropData } from 'phosphor-domutil';
- * import { Widget } from 'phosphor-widget';
+ * import {
+ *   DragData, DragHandler
+ * } from 'phosphor-domutil';
  *
- * class DraggableWidget extends Widget {
+ * class DragTarget {
+ *
  *   constructor() {
- *     super();
- *     this._payload = () => { return new Widget(); };
- *     this._dragHandler = new DragHandler(this.node, this);
+ *     this._node = someNodeFactory();
+ *     this._dragHandler = new DragHandler(this._node, this);
  *     this._dragHandler.onDragStart = this._onDragStart;
  *     this._dragHandler.onDragEnd = this._onDragEnd;
  *   }
+ *
  *   dispose(): void {
  *     this._dragHandler.dispose();
- *     super.dispose();
  *   }
- *   private _onDragStart(event: MouseEvent, dragData: IDragDropData): void {
- *     dragData.payload['application/x-phosphor-example'] = this._payload;
- *     console.log('drag start', dragData);
+ *
+ *   private _onDragStart(event: MouseEvent, data: DragData): void {
+ *     data.setData('text/plain', 'hello');
+ *     data.setData('application/x-my-custom-type', { foo: 42 });
+ *     console.log('drag start', data);
  *   }
- *   private _onDragEnd(event: MouseEvent, dragData: IDragDropData): void {
- *     console.log('drag end', dragData);
+ *
+ *   private _onDrag(event: MouseEvent, data: DragData): void {
+ *     console.log('drag', data);
  *   }
- *   private _dragHandler: DragHandler = null;
- *   private _payload: () => Widget = null;
+ *
+ *   private _onDragEnd(event: MouseEvent, data: DragData): void {
+ *     console.log('drag end', data);
+ *   }
+ *
+ *   private _node: HTMLElement;
+ *   private _dragHandler: DragHandler;
  * }
  * ```
  */
 export
 class DragHandler implements IDisposable {
   /**
-   * Flag to determine if a drag handler will automatically catch drag events.
-   *
-   * #### Notes
-   * If set to `false`, dragging will not automatically begin once the
-   * `threshold` has been crossed. The `startDrag` method will need to be
-   * invoked in order to inform the drag handler that a drag operation has
-   * started.
-   *
-   * **See also:** [[startDrag]]
-   */
-  autostart = true;
-
-  /**
-   * The default dragging threshold in pixels.
-   */
-  dragThreshold = 5;
-
-  /**
    * Construct a new drag handler.
    *
-   * @param node - The node that is being dragged.
+   * @param node - The node which acts as the drag target.
    *
-   * @param context - The context within which to fire event handlers.
+   * @param context - The `this` context for the drag handlers.
    */
-  constructor(node: Node, context: any) {
+  constructor(node: HTMLElement, context?: any) {
     this._node = node;
-    this._context =  context;
+    this._context = context;
     node.addEventListener('mousedown', this);
   }
 
   /**
-   * Dispose of the resources the drag handler created.
+   * Dispose of the drag handler and remove its event listeners.
    */
   dispose(): void {
+    document.removeEventListener('mousemove', this, true);
+    document.removeEventListener('mouseup', this, true);
     this._node.removeEventListener('mousedown', this);
     this._node = null;
     this._context = null;
+    this._disposeDragData();
+    this.onDragStart = null;
+    this.onDrag = null;
+    this.onDragEnd = null;
   }
 
   /**
-   * Check if a drag handler is disposed.
+   * Test if the drag handler is disposed.
    */
   get isDisposed(): boolean {
     return this._node === null;
   }
 
   /**
-   * Create an HTML element that will follow the cursor in drag/drop operations.
+   * Get the DOM node for the drag handler.
+   *
+   * #### Notes
+   * This is a read-only property.
    */
-  ghost(): HTMLElement {
-    let node = this._node.cloneNode(true) as HTMLElement;
-    let rect = (this._node as HTMLElement).getBoundingClientRect();
+  get node(): HTMLElement {
+    return this._node;
+  }
+
+  /**
+   * Get the `this` context for the drag handlers.
+   *
+   * #### Notes
+   * This is a read-only property.
+   */
+  get context(): any {
+    return this._context;
+  }
+
+  /**
+   * The drag distance threshold for the drag handler.
+   *
+   * This is distance the mouse must move before the drag operation
+   * starts. The default value is `5`.
+   */
+  threshold = 5;
+
+  /**
+   * A function called when the drag operation starts.
+   *
+   * @param event - The underlying native mouse event.
+   *
+   * @param data - The drag data object for the drag operation.
+   *
+   * #### Notes
+   * The creator of the drag handler should assign a function to this
+   * property to handle the drag start event.
+   *
+   * The handler should populate the data with the relevant mime data.
+   */
+  onDragStart: (event: MouseEvent, data: DragData) => void = null;
+
+  /**
+   * A function called when the mouse cursor moves during the drag.
+   *
+   * @param event - The underlying native mouse event.
+   *
+   * @param data - The drag data object for the drag operation.
+   *
+   * #### Notes
+   * The creator of the drag handler should assign a function to this
+   * property to handle the drag event.
+   *
+   * This handler will not typically be provided. It is only useful in
+   * special cases where the drag *source* wants to take action during
+   * drag move events.
+   */
+  onDrag: (event: MouseEvent, data: DragData) => void = null;
+
+  /**
+   * A function called when the drag operation ends.
+   *
+   * @param event - The underlying native mouse event.
+   *
+   * @param data - The drag data object for the drag operation.
+   *
+   * #### Notes
+   * The creator of the drag handler should assign a function to this
+   * property to handle the drag end event.
+   *
+   * The handler should read the `dropAction` property to determine
+   * whether and how the drop target handled the drop action. If the
+   * value is `'none'`, it indicates that the drop was not handled.
+   */
+  onDragEnd: (event: MouseEvent, data: DragData) => void = null;
+
+  /**
+   * Create the HTML element that will follow the cursor.
+   *
+   * #### Notes
+   * This can be reimplemented by a subclass to create a custom ghost
+   * node. The default implementation clones the handler's `node`.
+   */
+  createGhost(): HTMLElement {
+    let node = this.node.cloneNode(true) as HTMLElement;
+    let rect = this.node.getBoundingClientRect();
     node.style.height = `${rect.height}px`;
     node.style.width = `${rect.width}px`;
-    node.classList.add(DRAG_GHOST_CLASS);
+    node.classList.add(GHOST_CLASS);
     return node;
+  }
+
+  /**
+   * Synthetically start the drag operation.
+   *
+   * @param clientX - The current client X position of the mouse.
+   *
+   * @param clientY - The current client Y position of the mouse.
+   *
+   * #### Notes
+   * This acts as a synthetic mouse press for the cases where a drag
+   * operation needs to be started from other mouse handling code.
+   */
+  start(clientX: number, clientY: number): void {
+    // Do nothing if the drag is already started.
+    if (this._dragData) {
+      return;
+    }
+
+    // Store the initial mouse press position.
+    this._pressX = clientX;
+    this._pressY = clientY;
+
+    // Add the document mouse listeners.
+    document.addEventListener('mousemove', this, true);
+    document.addEventListener('mouseup', this, true);
   }
 
   /**
@@ -669,7 +771,7 @@ class DragHandler implements IDisposable {
    *
    * #### Notes
    * This method implements the DOM `EventListener` interface and is
-   * called in response to events on the drag handler's parent DOM node. It
+   * called in response to events on the drag handler's DOM node. It
    * should not be called directly by user code.
    */
   handleEvent(event: Event): void {
@@ -687,123 +789,280 @@ class DragHandler implements IDisposable {
   }
 
   /**
-   * Handle the drag start event.
-   *
-   * @param event - The native mouse event that underlies the drag operation.
-   *
-   * @param dragData - A reference to the drag/drop context used to pass data
-   * between the different stages of the drag and drop lifecycle.
-   */
-  onDragStart: (event: MouseEvent, dragData: IDragDropData) => void = null;
-
-  /**
-   * Handle the drag end event.
-   *
-   * @param event - The native mouse event that underlies the drag operation.
-   *
-   * @param dragData - A reference to the drag/drop context used to pass data
-   * between the different stages of the drag and drop lifecycle.
-   */
-  onDragEnd: (event: MouseEvent, dragData: IDragDropData) => void = null;
-
-  /**
-   * Start a drag operation manually.
-   *
-   * @param event - The native mouse event that underlies the drag operation.
-   *
-   * #### Notes
-   * This method only needs to be used if the `autostart` flag for a drag
-   * handler has been set to `false`.
-   *
-   * **See also:** [[autostart]]
-   */
-  startDrag(event: MouseEvent): void {
-    if (!this._dragData) {
-      this._createDragData(event);
-    }
-    if (this._dragData._started) {
-      return;
-    }
-    this._dragData._started = true;
-    this._dragData.ghost = this.ghost();
-    document.body.appendChild(this._dragData.ghost);
-    if (this.onDragStart) {
-      this.onDragStart.call(this._context, event, this._dragData);
-    }
-  }
-
-  /**
-   * Create drag data for a drag and drop lifecycle.
-   */
-  private _createDragData(event: MouseEvent): void {
-    this._dragData = {
-      _started: false,
-      ghost: null,
-      override: null,
-      payload: Object.create(null),
-      startX: event.clientX,
-      startY: event.clientY
-    };
-  }
-
-  /**
    * Handle the `'mousedown'` event for the drag handler.
    */
   private _evtMouseDown(event: MouseEvent): void {
+    // Do nothing if the drag is already started.
+    if (this._dragData) {
+      return;
+    }
+
+    // Do nothing if the left button is not pressed.
     if (event.button !== 0) {
       return;
     }
-    event.preventDefault();
-    event.stopPropagation();
+
+    // TODO should we stop propagation here?
+    // We may want to allow it in order to allow focus change.
+
+    // Store the initial mouse press position.
+    this._pressX = event.clientX;
+    this._pressY = event.clientY;
+
+    // Add the document mouse listeners.
     document.addEventListener('mousemove', this, true);
     document.addEventListener('mouseup', this, true);
-    this._createDragData(event);
   }
 
   /**
    * Handle the `'mousemove'` event for the drag handler.
    */
   private _evtMouseMove(event: MouseEvent): void {
-    if (!this._dragData._started) {
-      if (!this.autostart) {
+    // Mouse move events are never propagated since this handler
+    // is only installed when during a left mouse drag operation.
+    event.preventDefault();
+    event.stopPropagation();
+
+    // Check to see if the drag threshold has been exceeded, and
+    // start the drag operation the first time that event occurs.
+    if (!this._dragData) {
+      let dx = Math.abs(event.clientX - this._pressX);
+      let dy = Math.abs(event.clientY - this._pressY);
+      if (dx < this.threshold && dy < this.threshold) {
         return;
       }
-      let dx = Math.abs(event.clientX - this._dragData.startX);
-      let dy = Math.abs(event.clientY - this._dragData.startY);
-      if (Math.sqrt(dx * dx + dy * dy) >= this.dragThreshold) {
-        this.startDrag(event);
-      } else {
-        return;
-      }
+
+      // Invalidate the cached drop data before starting the drag.
+      invalidateCachedDropData();
+
+      // Setup the drag data and attach the ghost node.
+      this._dragData = new DragData(this.createGhost());
+      document.body.appendChild(this._dragData.ghost);
+
+      // Run the drag start handler.
+      runDragStart(this, event, this._dragData);
     }
-    this._dragData.ghost.style.top = `${event.clientY}px`;
-    this._dragData.ghost.style.left = `${event.clientX}px`;
-    DropHandler.deploy('drag', event, this._dragData);
+
+    // Move the ghost node to the new mouse position.
+    let style = this._dragData.ghost.style;
+    style.top = `${event.clientY}px`;
+    style.left = `${event.clientX}px`;
+
+    // Run the drop handlers for the drag event.
+    runDropHandlers(DropHandlerAction.Drag, event, this._dragData);
+
+    // Run the drag event handler.
+    runDrag(this, event, this._dragData);
   }
 
   /**
    * Handle the `'mouseup'` event for the drag handler.
    */
   private _evtMouseUp(event: MouseEvent): void {
+    // Do nothing if the left mouse button is not released.
+    if (event.button !== 0) {
+      return;
+    }
+
+    // Mouse up events are never propagated since this handler
+    // is only installed when during a left mouse drag operation.
+    event.preventDefault();
+    event.stopPropagation();
+
+    // Remove the extra mouse handlers.
     document.removeEventListener('mousemove', this, true);
     document.removeEventListener('mouseup', this, true);
-    if (this._dragData._started) {
-      if (this._dragData.ghost) {
-        document.body.removeChild(this._dragData.ghost);
-      }
-      DropHandler.invalidateCache();
-      DropHandler.deploy('drop', event, this._dragData);
-      if (this.onDragEnd) {
-        this.onDragEnd.call(this._context, event, this._dragData);
-      }
+
+    // Bail if no drag is in progress.
+    if (!this._dragData) {
+      return;
     }
-    if (this._dragData.override) {
-      this._dragData.override.dispose();
+
+    // Run the drop and end handlers, then dispose the drag data.
+    try {
+      runDropHandlers(DropHandlerAction.Drop, event, this._dragData);
+      runDragEnd(this, event, this._dragData);
+    } finally {
+      this._disposeDragData();
     }
-    this._dragData = null;
   }
 
-  private _dragData: IPrivateDragDropData = null;
-  private _node: Node = null;
-  private _context: any = null;
+  /**
+   * Dispose of the resources held by the drag data.
+   */
+  private _disposeDragData(): void {
+    let data = this._dragData;
+    if (!data) {
+      return;
+    }
+    this._dragData = null;
+    document.body.removeChild(data.ghost);
+    (data as any)._override.dispose();
+  }
+
+  private _pressX = -1;
+  private _pressY = -1;
+  private _context: any;
+  private _node: HTMLElement;
+  private _dragData: DragData = null;
+}
+
+
+/**
+ * A data record for a drop handler registration.
+ */
+interface IDropRecord {
+  /**
+   * The drop handler for the record.
+   */
+  handler: DropHandler;
+
+  /**
+   * Whether the mouse has entered the drop target.
+   */
+  entered: boolean;
+
+  /**
+   * The cached client rect for the handler.
+   */
+  rect: ClientRect;
+}
+
+
+/**
+ * A function which computes successive unique drop ids.
+ */
+var nextDropID = (() => { let id = 0; return () => 'dropID-' + id++; })();
+
+/**
+ * The registry of drop records.
+ */
+var dropRegistry: { [id: string]: IDropRecord } = Object.create(null);
+
+/**
+ * An enum of the semantic drop handler actions.
+ */
+const enum DropHandlerAction { Drag, Drop }
+
+
+/**
+ * Create a drop record for the given drop handler.
+ */
+function createDropRecord(handler: DropHandler): IDropRecord {
+  return { handler, entered: false, rect: null };
+}
+
+
+/**
+ * Invalidate the cached drop record data.
+ */
+function invalidateCachedDropData(): void {
+  for (let key in dropRegistry) {
+    let record = dropRegistry[key];
+    record.entered = false;
+    record.rect = null;
+  }
+}
+
+
+/**
+ * Run the relevant drop handlers for the given parameters.
+ */
+function runDropHandlers(action: DropHandlerAction, event: MouseEvent, data: DragData): void {
+  for (let key in dropRegistry) {
+    // Fetch common variables.
+    let record = dropRegistry[key];
+    let handler = record.handler;
+
+    // Compute and cache the client drop rect if necessary.
+    if (!record.rect) {
+      record.rect = handler.node.getBoundingClientRect();
+    }
+
+    // Dispatch to the appropriate drop event handlers.
+    if (hitTestRect(record.rect, event.clientX, event.clientY)) {
+      if (!record.entered) {
+        record.entered = true;
+        runDragEnter(record.handler, event, data);
+      }
+      if (action === DropHandlerAction.Drag) {
+        runDragOver(record.handler, event, data);
+      } else if (action === DropHandlerAction.Drop) {
+        runDrop(record.handler, event, data);
+      }
+    } else if (record.entered) {
+      record.entered = false;
+      runDragLeave(record.handler, event, data);
+    }
+  }
+}
+
+
+/**
+ * Run a drag handler's drag start event handler, if it exists.
+ */
+function runDragStart(handler: DragHandler, event: MouseEvent, data: DragData): void {
+  if (handler.onDragStart) {
+    handler.onDragStart.call(handler.context, event, data);
+  }
+}
+
+
+/**
+ * Run a drag handler's drag event handler, if it exists.
+ */
+function runDrag(handler: DragHandler, event: MouseEvent, data: DragData): void {
+  if (handler.onDrag) {
+    handler.onDrag.call(handler.context, event, data);
+  }
+}
+
+
+/**
+ * Run a drag handler's drag end event handler, if it exists.
+ */
+function runDragEnd(handler: DragHandler, event: MouseEvent, data: DragData): void {
+  if (handler.onDragEnd) {
+    handler.onDragEnd.call(handler.context, event, data);
+  }
+}
+
+
+/**
+ * Run a drop handler's drag enter event handler, if it exists.
+ */
+function runDragEnter(handler: DropHandler, event: MouseEvent, data: DragData): void {
+  if (handler.onDragEnter) {
+    handler.onDragEnter.call(handler.context, event, data);
+  }
+}
+
+
+/**
+ * Run a drop handler's drag over event handler, if it exists.
+ */
+function runDragOver(handler: DropHandler, event: MouseEvent, data: DragData): void {
+  if (handler.onDragOver) {
+    handler.onDragOver.call(handler.context, event, data);
+  }
+}
+
+
+/**
+ * Run a drop handler's drag leave event handler, if it exists.
+ */
+function runDragLeave(handler: DropHandler, event: MouseEvent, data: DragData): void {
+  if (handler.onDragLeave) {
+    handler.onDragLeave.call(handler.context, event, data);
+  }
+}
+
+
+/**
+ * Run a drop handler's drop event handler, if it exists.
+ */
+function runDrop(handler: DropHandler, event: MouseEvent, data: DragData): void {
+  if (handler.onDrop) {
+    handler.onDrop.call(handler.context, event, data);
+  }
 }
