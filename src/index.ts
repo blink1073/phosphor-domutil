@@ -394,180 +394,6 @@ class DragData {
 
 
 /**
- * A class for implementing drop targets.
- *
- * #### Example
- * ```typescript
- * import {
- *   DragData, DropHandler
- * } from 'phosphor-domutil';
- *
- * class DropTarget {
- *
- *   constructor() {
- *     this._node = someNodeFactory();
- *     this._dropHandler = new DropHandler(this._node, this);
- *     this._dropHandler.onDragEnter = this._onDragEnter;
- *     this._dropHandler.onDragLeave = this._onDragLeave;
- *     this._dropHandler.onDragOver = this._onDragOver;
- *     this._dropHandler.onDrop = this._onDrop;
- *   }
- *
- *   dispose(): void {
- *     this._dropHandler.dispose();
- *   }
- *
- *   private _onDragEnter(event: MouseEvent, data: DragData): void {
- *     console.log('drag enter', data);
- *   }
- *
- *   private _onDragLeave(event: MouseEvent, data: DragData): void {
- *     console.log('drag leave', data);
- *   }
- *
- *   private _onDragOver(event: MouseEvent, data: DragData): void {
- *     console.log('drag', data);
- *   }
- *
- *   private _onDrop(event: MouseEvent, data: DragData): void {
- *     console.log(data.getData('text/plain'));
- *     console.log(data.getData('application/x-my-custom-type'));
- *     console.log('drop', data);
- *   }
- *
- *   private _node: HTMLElement;
- *   private _dropHandler: DropHandler;
- * }
- * ```
- */
-export
-class DropHandler implements IDisposable {
-  /**
-   * Construct a new drop handler.
-   *
-   * @param node - The node which acts as the drop target.
-   *
-   * @param context - The `this` context for the drop handlers.
-   */
-  constructor(node: HTMLElement, context?: any) {
-    this._node = node;
-    this._context = context;
-    dropRegistry[this._id] = createDropRecord(this);
-  }
-
-  /**
-   * Dispose of the resources held by the drop handler.
-   */
-  dispose(): void {
-    delete dropRegistry[this._id];
-    this.onDragEnter = null;
-    this.onDragOver = null;
-    this.onDragLeave = null;
-    this.onDrop = null;
-    this._context = null;
-    this._node = null;
-  }
-
-  /**
-   * Test if the drop handler is disposed.
-   */
-  get isDisposed(): boolean {
-    return this._node === null;
-  }
-
-  /**
-   * Get the DOM node for the drop handler.
-   *
-   * #### Notes
-   * This is a read-only property.
-   */
-  get node(): HTMLElement {
-    return this._node;
-  }
-
-  /**
-   * Get the `this` context for the drop handlers.
-   *
-   * #### Notes
-   * This is a read-only property.
-   */
-  get context(): any {
-    return this._context;
-  }
-
-  /**
-   * A function called when the drag enters the DOM node.
-   *
-   * @param event - The underlying native mouse event.
-   *
-   * @param data - The drag data object for the drag operation.
-   *
-   * #### Notes
-   * The creator of the drop handler should assign a function to this
-   * property to handle the drag enter event.
-   *
-   * The handler should update the `dropAction` of the data to reflect
-   * whether or not it can accept drops from the given drag data.
-   */
-  onDragEnter: (event: MouseEvent, data: DragData) => void = null;
-
-  /**
-   * A function called when the drag moves over the DOM node.
-   *
-   * @param event - The underlying native mouse event.
-   *
-   * @param data - The drag data object for the drag operation.
-   *
-   * #### Notes
-   * The creator of the drop handler should assign a function to this
-   * property to handle the drag over event.
-   *
-   * The handler should update the `dropAction` of the data if the
-   * result is different than the action set by the enter handler.
-   */
-  onDragOver: (event: MouseEvent, data: DragData) => void = null;
-
-  /**
-   * A function called when the drag leaves the DOM node.
-   *
-   * @param event - The underlying native mouse event.
-   *
-   * @param data - The drag data object for the drag operation.
-   *
-   * #### Notes
-   * The creator of the drop handler should assign a function to this
-   * property to handle the drag leave event.
-   *
-   * The `dropAction` is set to `'none'` after this handler returns.
-   */
-  onDragLeave: (event: MouseEvent, data: DragData) => void = null;
-
-  /**
-   * A function called when a drop occurs on the DOM node.
-   *
-   * @param event - The underlying native mouse event.
-   *
-   * @param data - The drag data object for the drag operation.
-   *
-   * #### Notes
-   * The creator of the drop handler should assign a function to this
-   * property to handle the drop event.
-   *
-   * The handler should update the `dropAction` of the data if the
-   * result is different than the action which was previously set.
-   *
-   * The `dropAction` will be set to `'none'` if the handler is `null`.
-   */
-  onDrop: (event: MouseEvent, data: DragData) => void = null;
-
-  private _context: any;
-  private _node: HTMLElement;
-  private _id = nextDropID();
-  private _mouseover = false;
-}
-
-
-/**
  * A class for implementing drag targets.
  *
  * #### Example
@@ -905,6 +731,180 @@ class DragHandler implements IDisposable {
   private _context: any;
   private _node: HTMLElement;
   private _dragData: DragData = null;
+}
+
+
+/**
+ * A class for implementing drop targets.
+ *
+ * #### Example
+ * ```typescript
+ * import {
+ *   DragData, DropHandler
+ * } from 'phosphor-domutil';
+ *
+ * class DropTarget {
+ *
+ *   constructor() {
+ *     this._node = someNodeFactory();
+ *     this._dropHandler = new DropHandler(this._node, this);
+ *     this._dropHandler.onDragEnter = this._onDragEnter;
+ *     this._dropHandler.onDragLeave = this._onDragLeave;
+ *     this._dropHandler.onDragOver = this._onDragOver;
+ *     this._dropHandler.onDrop = this._onDrop;
+ *   }
+ *
+ *   dispose(): void {
+ *     this._dropHandler.dispose();
+ *   }
+ *
+ *   private _onDragEnter(event: MouseEvent, data: DragData): void {
+ *     console.log('drag enter', data);
+ *   }
+ *
+ *   private _onDragLeave(event: MouseEvent, data: DragData): void {
+ *     console.log('drag leave', data);
+ *   }
+ *
+ *   private _onDragOver(event: MouseEvent, data: DragData): void {
+ *     console.log('drag', data);
+ *   }
+ *
+ *   private _onDrop(event: MouseEvent, data: DragData): void {
+ *     console.log(data.getData('text/plain'));
+ *     console.log(data.getData('application/x-my-custom-type'));
+ *     console.log('drop', data);
+ *   }
+ *
+ *   private _node: HTMLElement;
+ *   private _dropHandler: DropHandler;
+ * }
+ * ```
+ */
+export
+class DropHandler implements IDisposable {
+  /**
+   * Construct a new drop handler.
+   *
+   * @param node - The node which acts as the drop target.
+   *
+   * @param context - The `this` context for the drop handlers.
+   */
+  constructor(node: HTMLElement, context?: any) {
+    this._node = node;
+    this._context = context;
+    dropRegistry[this._id] = createDropRecord(this);
+  }
+
+  /**
+   * Dispose of the resources held by the drop handler.
+   */
+  dispose(): void {
+    delete dropRegistry[this._id];
+    this.onDragEnter = null;
+    this.onDragOver = null;
+    this.onDragLeave = null;
+    this.onDrop = null;
+    this._context = null;
+    this._node = null;
+  }
+
+  /**
+   * Test if the drop handler is disposed.
+   */
+  get isDisposed(): boolean {
+    return this._node === null;
+  }
+
+  /**
+   * Get the DOM node for the drop handler.
+   *
+   * #### Notes
+   * This is a read-only property.
+   */
+  get node(): HTMLElement {
+    return this._node;
+  }
+
+  /**
+   * Get the `this` context for the drop handlers.
+   *
+   * #### Notes
+   * This is a read-only property.
+   */
+  get context(): any {
+    return this._context;
+  }
+
+  /**
+   * A function called when the drag enters the DOM node.
+   *
+   * @param event - The underlying native mouse event.
+   *
+   * @param data - The drag data object for the drag operation.
+   *
+   * #### Notes
+   * The creator of the drop handler should assign a function to this
+   * property to handle the drag enter event.
+   *
+   * The handler should update the `dropAction` of the data to reflect
+   * whether or not it can accept drops from the given drag data.
+   */
+  onDragEnter: (event: MouseEvent, data: DragData) => void = null;
+
+  /**
+   * A function called when the drag moves over the DOM node.
+   *
+   * @param event - The underlying native mouse event.
+   *
+   * @param data - The drag data object for the drag operation.
+   *
+   * #### Notes
+   * The creator of the drop handler should assign a function to this
+   * property to handle the drag over event.
+   *
+   * The handler should update the `dropAction` of the data if the
+   * result is different than the action set by the enter handler.
+   */
+  onDragOver: (event: MouseEvent, data: DragData) => void = null;
+
+  /**
+   * A function called when the drag leaves the DOM node.
+   *
+   * @param event - The underlying native mouse event.
+   *
+   * @param data - The drag data object for the drag operation.
+   *
+   * #### Notes
+   * The creator of the drop handler should assign a function to this
+   * property to handle the drag leave event.
+   *
+   * The `dropAction` is set to `'none'` after this handler returns.
+   */
+  onDragLeave: (event: MouseEvent, data: DragData) => void = null;
+
+  /**
+   * A function called when a drop occurs on the DOM node.
+   *
+   * @param event - The underlying native mouse event.
+   *
+   * @param data - The drag data object for the drag operation.
+   *
+   * #### Notes
+   * The creator of the drop handler should assign a function to this
+   * property to handle the drop event.
+   *
+   * The handler should update the `dropAction` of the data if the
+   * result is different than the action which was previously set.
+   *
+   * The `dropAction` will be set to `'none'` if the handler is `null`.
+   */
+  onDrop: (event: MouseEvent, data: DragData) => void = null;
+
+  private _context: any;
+  private _node: HTMLElement;
+  private _id = nextDropID();
+  private _mouseover = false;
 }
 
 
