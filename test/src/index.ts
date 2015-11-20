@@ -935,7 +935,7 @@ describe('phosphor-domutil', () => {
 
     describe('#getData()', () => {
 
-      it('should return the data set for a mime type', () => {
+      it('should return the data for a mime type', () => {
         let node = document.createElement('div') as HTMLElement;
         let dragData = new DragData(node);
         let mime = 'application/x-phosphor-test';
@@ -948,7 +948,7 @@ describe('phosphor-domutil', () => {
 
     describe('#setData()', () => {
 
-      it('should set the data set for a mime type', () => {
+      it('should set the data for a mime type', () => {
         let node = document.createElement('div') as HTMLElement;
         let dragData = new DragData(node);
         let mime = 'application/x-phosphor-test';
@@ -961,7 +961,7 @@ describe('phosphor-domutil', () => {
 
     describe('#clearData()', () => {
 
-      it('should delete the data set for a mime type', () => {
+      it('should delete the data for a mime type', () => {
         let node = document.createElement('div') as HTMLElement;
         let dragData = new DragData(node);
         let mime = 'application/x-phosphor-test';
