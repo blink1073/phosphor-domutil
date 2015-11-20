@@ -477,6 +477,60 @@ describe('phosphor-domutil', () => {
         drop.dispose();
       });
 
+      it('if not set, dropAction should be set to \'none\'', () => {
+        let draggable = document.createElement('div');
+        let droppable = document.createElement('div');
+        let drag = new DragHandler(draggable, null);
+        let drop = new DropHandler(droppable, null);
+
+        draggable.style.position = 'absolute';
+        draggable.style.top = '0px';
+        draggable.style.left = '0px';
+        draggable.style.height = '100px';
+        draggable.style.width = '100px';
+
+        droppable.style.position = 'absolute';
+        droppable.style.top = '150px';
+        droppable.style.left = '150px';
+        droppable.style.height = '100px';
+        droppable.style.width = '100px';
+
+        document.body.appendChild(draggable);
+        document.body.appendChild(droppable);
+
+        let dragRect = draggable.getBoundingClientRect();
+        let dropRect = droppable.getBoundingClientRect();
+        let dropAction = '';
+
+        drag.onDragEnd = (event: MouseEvent, data: DragData) => {
+          dropAction = data.dropAction;
+        };
+
+        drop.onDragEnter = (event: MouseEvent, data: DragData) => {
+          dropAction = 'copy';
+        };
+
+        triggerMouseEvent(draggable, 'mousedown', {
+          clientX: dragRect.left,
+          clientY: dragRect.top
+        });
+
+        triggerMouseEvent(document.body, 'mousemove', {
+          clientX: dropRect.left,
+          clientY: dropRect.top
+        });
+
+        triggerMouseEvent(document.body, 'mouseup', {
+          clientX: dropRect.left,
+          clientY: dropRect.top
+        });
+
+        expect(dropAction).to.equal('none');
+
+        drag.dispose();
+        drop.dispose();
+      });
+
     });
 
   });

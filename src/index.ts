@@ -995,7 +995,6 @@ function runDropHandlers(action: DropHandlerAction, event: MouseEvent, data: Dra
       }
     } else if (record.entered) {
       record.entered = false;
-      data.dropAction = 'none';
       runDragLeave(record.handler, event, data);
     }
   }
@@ -1056,6 +1055,8 @@ function runDragOver(handler: DropHandler, event: MouseEvent, data: DragData): v
  * Run a drop handler's drag leave event handler, if it exists.
  */
 function runDragLeave(handler: DropHandler, event: MouseEvent, data: DragData): void {
+  // Reset the drop action to none when leaving a drop target.
+  data.dropAction = 'none';
   if (handler.onDragLeave) {
     handler.onDragLeave.call(handler.context, event, data);
   }
@@ -1068,5 +1069,8 @@ function runDragLeave(handler: DropHandler, event: MouseEvent, data: DragData): 
 function runDrop(handler: DropHandler, event: MouseEvent, data: DragData): void {
   if (handler.onDrop) {
     handler.onDrop.call(handler.context, event, data);
+  } else {
+    // Drop action should be reset to 'none' if there is no drop handler.
+    data.dropAction = 'none';
   }
 }
