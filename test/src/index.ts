@@ -712,7 +712,7 @@ describe('phosphor-domutil', () => {
         handler.dispose();
       });
 
-      it('should ignore secondly mouseup events', () => {
+      it('should ignore secondary mouseup events', () => {
         let node = document.createElement('div');
         let handler = new DragHandler(node, null);
 
