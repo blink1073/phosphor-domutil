@@ -548,7 +548,7 @@ describe('phosphor-domutil', () => {
 
         triggerMouseEvent(node, 'mousedown', {
           clientX: rect.left,
-          clientY: rect.top,
+          clientY: rect.top
         });
 
         expect(count).to.be(0);
@@ -592,7 +592,7 @@ describe('phosphor-domutil', () => {
         triggerMouseEvent(node, 'mousedown', {
           button: 1,
           clientX: rect.left,
-          clientY: rect.top,
+          clientY: rect.top
         });
 
         expect(count).to.be(0);
@@ -632,7 +632,7 @@ describe('phosphor-domutil', () => {
 
         triggerMouseEvent(node, 'mousedown', {
           clientX: rect.left,
-          clientY: rect.top,
+          clientY: rect.top
         });
 
         expect(count).to.be(0);
@@ -686,7 +686,7 @@ describe('phosphor-domutil', () => {
 
         triggerMouseEvent(node, 'mousedown', {
           clientX: rect.left,
-          clientY: rect.top,
+          clientY: rect.top
         });
 
         expect(count).to.be(0);
@@ -731,7 +731,7 @@ describe('phosphor-domutil', () => {
 
         triggerMouseEvent(node, 'mousedown', {
           clientX: rect.left,
-          clientY: rect.top,
+          clientY: rect.top
         });
 
         expect(count).to.be(0);
@@ -850,7 +850,7 @@ describe('phosphor-domutil', () => {
 
         triggerMouseEvent(node, 'mousedown', {
           clientX: rect.left,
-          clientY: rect.top,
+          clientY: rect.top
         });
 
         expect(count).to.be(1);
