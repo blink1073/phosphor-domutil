@@ -995,6 +995,7 @@ function runDropHandlers(action: DropHandlerAction, event: MouseEvent, data: Dra
       }
     } else if (record.entered) {
       record.entered = false;
+      data.dropAction = 'none';
       runDragLeave(record.handler, event, data);
     }
   }
