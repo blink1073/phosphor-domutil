@@ -17,6 +17,10 @@ import {
 import './index.css';
 
 
+// This needs to mirror the DRAG_THRESHOLD in the main index file.
+const DRAG_THRESHOLD = 5;
+
+
 function triggerMouseEvent(node: HTMLElement, type: string, options: any = {}): MouseEvent {
   let event = document.createEvent('MouseEvents');
   event.initMouseEvent(
@@ -240,7 +244,7 @@ describe('phosphor-domutil', () => {
         expect(count).to.be(0);
 
         triggerMouseEvent(document.body, 'mousemove', {
-          clientX: dragRect.left + drag.threshold,
+          clientX: dragRect.left + DRAG_THRESHOLD,
           clientY: dragRect.top
         });
 
@@ -312,7 +316,7 @@ describe('phosphor-domutil', () => {
         expect(count).to.be(0);
 
         triggerMouseEvent(document.body, 'mousemove', {
-          clientX: dragRect.left + drag.threshold,
+          clientX: dragRect.left + DRAG_THRESHOLD,
           clientY: dragRect.top
         });
 
@@ -384,7 +388,7 @@ describe('phosphor-domutil', () => {
         expect(count).to.be(0);
 
         triggerMouseEvent(document.body, 'mousemove', {
-          clientX: dragRect.left + drag.threshold,
+          clientX: dragRect.left + DRAG_THRESHOLD,
           clientY: dragRect.top
         });
 
@@ -473,6 +477,60 @@ describe('phosphor-domutil', () => {
         drop.dispose();
       });
 
+      it('if not set, dropAction should be set to \'none\'', () => {
+        let draggable = document.createElement('div');
+        let droppable = document.createElement('div');
+        let drag = new DragHandler(draggable, null);
+        let drop = new DropHandler(droppable, null);
+
+        draggable.style.position = 'absolute';
+        draggable.style.top = '0px';
+        draggable.style.left = '0px';
+        draggable.style.height = '100px';
+        draggable.style.width = '100px';
+
+        droppable.style.position = 'absolute';
+        droppable.style.top = '150px';
+        droppable.style.left = '150px';
+        droppable.style.height = '100px';
+        droppable.style.width = '100px';
+
+        document.body.appendChild(draggable);
+        document.body.appendChild(droppable);
+
+        let dragRect = draggable.getBoundingClientRect();
+        let dropRect = droppable.getBoundingClientRect();
+        let dropAction = '';
+
+        drag.onDragEnd = (event: MouseEvent, data: DragData) => {
+          dropAction = data.dropAction;
+        };
+
+        drop.onDragEnter = (event: MouseEvent, data: DragData) => {
+          dropAction = 'copy';
+        };
+
+        triggerMouseEvent(draggable, 'mousedown', {
+          clientX: dragRect.left,
+          clientY: dragRect.top
+        });
+
+        triggerMouseEvent(document.body, 'mousemove', {
+          clientX: dropRect.left,
+          clientY: dropRect.top
+        });
+
+        triggerMouseEvent(document.body, 'mouseup', {
+          clientX: dropRect.left,
+          clientY: dropRect.top
+        });
+
+        expect(dropAction).to.equal('none');
+
+        drag.dispose();
+        drop.dispose();
+      });
+
     });
 
   });
@@ -544,24 +602,61 @@ describe('phosphor-domutil', () => {
 
         triggerMouseEvent(node, 'mousedown', {
           clientX: rect.left,
-          clientY: rect.top,
-        });
-
-        expect(count).to.be(0);
-
-        triggerMouseEvent(document.body, 'mousemove', {
-          clientX: rect.left + handler.threshold - 1,
           clientY: rect.top
         });
 
         expect(count).to.be(0);
 
         triggerMouseEvent(document.body, 'mousemove', {
-          clientX: rect.left + handler.threshold,
+          clientX: rect.left + DRAG_THRESHOLD - 1,
+          clientY: rect.top
+        });
+
+        expect(count).to.be(0);
+
+        triggerMouseEvent(document.body, 'mousemove', {
+          clientX: rect.left + DRAG_THRESHOLD,
           clientY: rect.top
         });
 
         expect(count).to.be(1);
+
+        triggerMouseEvent(document.body, 'mouseup');
+
+        handler.dispose();
+      });
+
+      it('should ignore secondary mouse clicks', () => {
+        let node = document.createElement('div');
+        let handler = new DragHandler(node, null);
+
+        node.style.position = 'absolute';
+        node.style.top = '0px';
+        node.style.left = '0px';
+        node.style.height = '100px';
+        node.style.width = '100px';
+
+        document.body.appendChild(node);
+
+        let rect = node.getBoundingClientRect();
+
+        let count = 0;
+        handler.onDragStart = () => { count++; };
+
+        triggerMouseEvent(node, 'mousedown', {
+          button: 1,
+          clientX: rect.left,
+          clientY: rect.top
+        });
+
+        expect(count).to.be(0);
+
+        triggerMouseEvent(document.body, 'mousemove', {
+          clientX: rect.left + DRAG_THRESHOLD,
+          clientY: rect.top
+        });
+
+        expect(count).to.be(0);
 
         triggerMouseEvent(document.body, 'mouseup');
 
@@ -591,27 +686,27 @@ describe('phosphor-domutil', () => {
 
         triggerMouseEvent(node, 'mousedown', {
           clientX: rect.left,
-          clientY: rect.top,
-        });
-
-        expect(count).to.be(0);
-
-        triggerMouseEvent(document.body, 'mousemove', {
-          clientX: rect.left + handler.threshold - 1,
           clientY: rect.top
         });
 
         expect(count).to.be(0);
 
         triggerMouseEvent(document.body, 'mousemove', {
-          clientX: rect.left + handler.threshold,
+          clientX: rect.left + DRAG_THRESHOLD - 1,
+          clientY: rect.top
+        });
+
+        expect(count).to.be(0);
+
+        triggerMouseEvent(document.body, 'mousemove', {
+          clientX: rect.left + DRAG_THRESHOLD,
           clientY: rect.top
         });
 
         expect(count).to.be(1);
 
         triggerMouseEvent(document.body, 'mousemove', {
-          clientX: rect.left + handler.threshold + 1,
+          clientX: rect.left + DRAG_THRESHOLD + 1,
           clientY: rect.top
         });
 
@@ -645,20 +740,20 @@ describe('phosphor-domutil', () => {
 
         triggerMouseEvent(node, 'mousedown', {
           clientX: rect.left,
-          clientY: rect.top,
-        });
-
-        expect(count).to.be(0);
-
-        triggerMouseEvent(document.body, 'mousemove', {
-          clientX: rect.left + handler.threshold - 1,
           clientY: rect.top
         });
 
         expect(count).to.be(0);
 
         triggerMouseEvent(document.body, 'mousemove', {
-          clientX: rect.left + handler.threshold,
+          clientX: rect.left + DRAG_THRESHOLD - 1,
+          clientY: rect.top
+        });
+
+        expect(count).to.be(0);
+
+        triggerMouseEvent(document.body, 'mousemove', {
+          clientX: rect.left + DRAG_THRESHOLD,
           clientY: rect.top
         });
 
@@ -669,6 +764,287 @@ describe('phosphor-domutil', () => {
         expect(count).to.be(1);
 
         handler.dispose();
+      });
+
+      it('should ignore secondary mouseup events', () => {
+        let node = document.createElement('div');
+        let handler = new DragHandler(node, null);
+
+        node.style.position = 'absolute';
+        node.style.top = '0px';
+        node.style.left = '0px';
+        node.style.height = '100px';
+        node.style.width = '100px';
+
+        document.body.appendChild(node);
+
+        let rect = node.getBoundingClientRect();
+
+        let count = 0;
+        handler.onDragEnd = () => { count++; };
+
+        triggerMouseEvent(node, 'mousedown', {
+          clientX: rect.left,
+          clientY: rect.top
+        });
+
+        expect(count).to.be(0);
+
+        triggerMouseEvent(document.body, 'mousemove', {
+          clientX: rect.left + DRAG_THRESHOLD,
+          clientY: rect.top
+        });
+
+        expect(count).to.be(0);
+
+        triggerMouseEvent(document.body, 'mouseup', {
+          button: 1
+        });
+
+        expect(count).to.be(0);
+
+        handler.dispose();
+      });
+
+    });
+
+    describe('#start', () => {
+
+      it('should initiate a drag without needing a mousedown', () => {
+        let node = document.createElement('div');
+        let handler = new DragHandler(node, null);
+
+        node.style.position = 'absolute';
+        node.style.top = '0px';
+        node.style.left = '0px';
+        node.style.height = '100px';
+        node.style.width = '100px';
+
+        document.body.appendChild(node);
+
+        let rect = node.getBoundingClientRect();
+
+        let count = 0;
+        handler.onDrag = () => { count++; };
+
+        handler.start(0, 0);
+
+        triggerMouseEvent(document.body, 'mousemove', {
+          clientX: rect.left + DRAG_THRESHOLD - 1,
+          clientY: rect.top
+        });
+
+        expect(count).to.be(1);
+
+        triggerMouseEvent(document.body, 'mouseup');
+
+        handler.dispose();
+      });
+
+      it('should ignore being called multiple times', () => {
+        let node = document.createElement('div');
+        let handler = new DragHandler(node, null);
+
+        node.style.position = 'absolute';
+        node.style.top = '0px';
+        node.style.left = '0px';
+        node.style.height = '100px';
+        node.style.width = '100px';
+
+        document.body.appendChild(node);
+
+        let rect = node.getBoundingClientRect();
+
+        let count = 0;
+        let startX = -1;
+        let startY = -1;
+        handler.onDragStart = () => { count++; };
+
+        handler.start(0, 0);
+
+        triggerMouseEvent(document.body, 'mousemove', {
+          clientX: rect.left + DRAG_THRESHOLD - 1,
+          clientY: rect.top
+        });
+
+        handler.start(0, 0);
+
+        expect(count).to.be(1);
+
+        triggerMouseEvent(document.body, 'mouseup');
+
+        handler.dispose();
+      });
+
+      it('should ignore a mousedown if a drag has already started', () => {
+        let node = document.createElement('div');
+        let handler = new DragHandler(node, null);
+
+        node.style.position = 'absolute';
+        node.style.top = '0px';
+        node.style.left = '0px';
+        node.style.height = '100px';
+        node.style.width = '100px';
+
+        document.body.appendChild(node);
+
+        let rect = node.getBoundingClientRect();
+
+        let count = 0;
+        let startX = -1;
+        let startY = -1;
+        handler.onDragStart = () => { count++; };
+
+        handler.start(0, 0);
+
+        triggerMouseEvent(document.body, 'mousemove', {
+          clientX: rect.left + DRAG_THRESHOLD - 1,
+          clientY: rect.top
+        });
+
+        triggerMouseEvent(node, 'mousedown', {
+          clientX: rect.left,
+          clientY: rect.top
+        });
+
+        expect(count).to.be(1);
+
+        triggerMouseEvent(document.body, 'mouseup');
+
+        handler.dispose();
+      });
+
+    });
+
+  });
+
+  describe('DragData', () => {
+
+    describe('#constructor()', () => {
+
+      it('should accept one argument', () => {
+        let node = document.createElement('div') as HTMLElement;
+        let dragData = new DragData(node);
+        expect(dragData instanceof DragData).to.be(true);
+      });
+
+    });
+
+    describe('#dropAction', () => {
+
+      it('should be gettable and default to \'none\'', () => {
+        let node = document.createElement('div') as HTMLElement;
+        let dragData = new DragData(node);
+        expect(dragData.dropAction).to.equal('none');
+      });
+
+      it('should be settable to \'copy\'', () => {
+        let node = document.createElement('div') as HTMLElement;
+        let dragData = new DragData(node);
+        dragData.dropAction = 'copy';
+        expect(dragData.dropAction).to.equal('copy');
+      });
+
+      it('should be settable to \'link\'', () => {
+        let node = document.createElement('div') as HTMLElement;
+        let dragData = new DragData(node);
+        dragData.dropAction = 'link';
+        expect(dragData.dropAction).to.equal('link');
+      });
+
+      it('should be settable to \'move\'', () => {
+        let node = document.createElement('div') as HTMLElement;
+        let dragData = new DragData(node);
+        dragData.dropAction = 'move';
+        expect(dragData.dropAction).to.equal('move');
+      });
+
+      it('should be settable to \'none\'', () => {
+        let node = document.createElement('div') as HTMLElement;
+        let dragData = new DragData(node);
+        dragData.dropAction = 'move';
+        expect(dragData.dropAction).to.equal('move');
+        dragData.dropAction = 'none';
+        expect(dragData.dropAction).to.equal('none');
+      });
+
+      it('should be settable to nothing else', () => {
+        let node = document.createElement('div') as HTMLElement;
+        let dragData = new DragData(node);
+        dragData.dropAction = 'move';
+        expect(dragData.dropAction).to.equal('move');
+        dragData.dropAction = 'foo';
+        expect(dragData.dropAction).to.equal('move');
+      });
+
+      it('should be settable multiple times without side-effects', () => {
+        let node = document.createElement('div') as HTMLElement;
+        let dragData = new DragData(node);
+        dragData.dropAction = 'move';
+        dragData.dropAction = 'move';
+        expect(dragData.dropAction).to.equal('move');
+      });
+
+    });
+
+    describe('#getData()', () => {
+
+      it('should return the data for a mime type', () => {
+        let node = document.createElement('div') as HTMLElement;
+        let dragData = new DragData(node);
+        let mime = 'application/x-phosphor-test';
+        let data = 'arbitrary test data';
+        dragData.setData(mime, data);
+        expect(dragData.getData(mime)).to.equal(data);
+      });
+
+    });
+
+    describe('#setData()', () => {
+
+      it('should set the data for a mime type', () => {
+        let node = document.createElement('div') as HTMLElement;
+        let dragData = new DragData(node);
+        let mime = 'application/x-phosphor-test';
+        let data = 'arbitrary test data';
+        dragData.setData(mime, data);
+        expect(dragData.getData(mime)).to.equal(data);
+      });
+
+    });
+
+    describe('#clearData()', () => {
+
+      it('should delete the data for a mime type', () => {
+        let node = document.createElement('div') as HTMLElement;
+        let dragData = new DragData(node);
+        let mime = 'application/x-phosphor-test';
+        let data = 'arbitrary test data';
+        dragData.setData(mime, data);
+        expect(dragData.getData(mime)).to.equal(data);
+        dragData.clearData(mime);
+        expect(dragData.getData(mime)).to.equal(void 0);
+      });
+
+    });
+
+    describe('#types()', () => {
+
+      it('should return the list of mime types set', () => {
+        let node = document.createElement('div') as HTMLElement;
+        let dragData = new DragData(node);
+        let mimeOne = 'application/x-phosphor-test';
+        let dataOne = 'arbitrary test data';
+        let mimeTwo = 'application/x-phosphor-test-two';
+        let dataTwo = 'more arbitrary test data';
+        expect(dragData.types()).to.have.length(0);
+        dragData.setData(mimeOne, dataOne);
+        expect(dragData.types()).to.have.length(1);
+        expect(dragData.types()).to.contain(mimeOne);
+        dragData.setData(mimeTwo, dataTwo);
+        expect(dragData.types()).to.have.length(2);
+        expect(dragData.types()).to.contain(mimeOne);
+        expect(dragData.types()).to.contain(mimeTwo);
       });
 
     });

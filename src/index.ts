@@ -24,6 +24,11 @@ const OVERRIDE_CURSOR_CLASS = 'p-mod-override-cursor';
  */
 const GHOST_CLASS = 'p-mod-ghost';
 
+/**
+ * The number of pixels of movement before the drag/drop lifecycle begins.
+ */
+const DRAG_THRESHOLD = 5;
+
 
 /**
  * Override the cursor for the entire document.
@@ -492,14 +497,6 @@ class DragHandler implements IDisposable {
   }
 
   /**
-   * The drag distance threshold for the drag handler.
-   *
-   * This is distance the mouse must move before the drag operation
-   * starts. The default value is `5`.
-   */
-  threshold = 5;
-
-  /**
    * A function called when the drag operation starts.
    *
    * @param event - The underlying native mouse event.
@@ -585,6 +582,9 @@ class DragHandler implements IDisposable {
     this._pressX = clientX;
     this._pressY = clientY;
 
+    // Ignore the default threshold for drag start in future mousemove events.
+    this._ignoreThreshold = true;
+
     // Add the document mouse listeners.
     document.addEventListener('mousemove', this, true);
     document.addEventListener('mouseup', this, true);
@@ -652,10 +652,12 @@ class DragHandler implements IDisposable {
     // Check to see if the drag threshold has been exceeded, and
     // start the drag operation the first time that event occurs.
     if (!this._dragData) {
-      let dx = Math.abs(event.clientX - this._pressX);
-      let dy = Math.abs(event.clientY - this._pressY);
-      if (dx < this.threshold && dy < this.threshold) {
-        return;
+      if (!this._ignoreThreshold) {
+        let dx = Math.abs(event.clientX - this._pressX);
+        let dy = Math.abs(event.clientY - this._pressY);
+        if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) {
+          return;
+        }
       }
 
       // Invalidate the cached drop data before starting the drag.
@@ -726,6 +728,7 @@ class DragHandler implements IDisposable {
     (data as any)._override.dispose();
   }
 
+  private _ignoreThreshold = false;
   private _pressX = -1;
   private _pressY = -1;
   private _context: any;
@@ -1052,6 +1055,8 @@ function runDragOver(handler: DropHandler, event: MouseEvent, data: DragData): v
  * Run a drop handler's drag leave event handler, if it exists.
  */
 function runDragLeave(handler: DropHandler, event: MouseEvent, data: DragData): void {
+  // Reset the drop action to none when leaving a drop target.
+  data.dropAction = 'none';
   if (handler.onDragLeave) {
     handler.onDragLeave.call(handler.context, event, data);
   }
@@ -1064,5 +1069,8 @@ function runDragLeave(handler: DropHandler, event: MouseEvent, data: DragData): 
 function runDrop(handler: DropHandler, event: MouseEvent, data: DragData): void {
   if (handler.onDrop) {
     handler.onDrop.call(handler.context, event, data);
+  } else {
+    // Drop action should be reset to 'none' if there is no drop handler.
+    data.dropAction = 'none';
   }
 }
