@@ -507,7 +507,7 @@ describe('phosphor-domutil', () => {
         };
 
         drop.onDragEnter = (event: MouseEvent, data: DragData) => {
-          dropAction = 'copy';
+          dropAction = data.dropAction = 'copy';
         };
 
         triggerMouseEvent(draggable, 'mousedown', {

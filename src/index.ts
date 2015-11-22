@@ -582,7 +582,7 @@ class DragHandler implements IDisposable {
     this._pressX = clientX;
     this._pressY = clientY;
 
-    // Ignore the default threshold for drag start in future mousemove events.
+    // Ignore the threshold for future mousemove events.
     this._ignoreThreshold = true;
 
     // Add the document mouse listeners.
@@ -728,11 +728,11 @@ class DragHandler implements IDisposable {
     (data as any)._override.dispose();
   }
 
-  private _ignoreThreshold = false;
   private _pressX = -1;
   private _pressY = -1;
   private _context: any;
   private _node: HTMLElement;
+  private _ignoreThreshold = false;
   private _dragData: DragData = null;
 }
 
@@ -907,7 +907,6 @@ class DropHandler implements IDisposable {
   private _context: any;
   private _node: HTMLElement;
   private _id = nextDropID();
-  private _mouseover = false;
 }
 
 
@@ -1055,11 +1054,10 @@ function runDragOver(handler: DropHandler, event: MouseEvent, data: DragData): v
  * Run a drop handler's drag leave event handler, if it exists.
  */
 function runDragLeave(handler: DropHandler, event: MouseEvent, data: DragData): void {
-  // Reset the drop action to none when leaving a drop target.
-  data.dropAction = 'none';
   if (handler.onDragLeave) {
     handler.onDragLeave.call(handler.context, event, data);
   }
+  data.dropAction = 'none';
 }
 
 
@@ -1070,7 +1068,6 @@ function runDrop(handler: DropHandler, event: MouseEvent, data: DragData): void 
   if (handler.onDrop) {
     handler.onDrop.call(handler.context, event, data);
   } else {
-    // Drop action should be reset to 'none' if there is no drop handler.
     data.dropAction = 'none';
   }
 }
