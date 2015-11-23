@@ -982,20 +982,33 @@ function runDropHandlers(action: DropHandlerAction, event: MouseEvent, data: Dra
       record.rect = handler.node.getBoundingClientRect();
     }
 
-    // Dispatch to the appropriate drop event handlers.
-    if (hitTestRect(record.rect, event.clientX, event.clientY)) {
-      if (!record.entered) {
-        record.entered = true;
-        runDragEnter(record.handler, event, data);
-      }
-      if (action === DropHandlerAction.Drag) {
-        runDragOver(record.handler, event, data);
-      } else if (action === DropHandlerAction.Drop) {
-        runDrop(record.handler, event, data);
-      }
-    } else if (record.entered) {
+    // Skip all un-entered records
+    if (!record.entered) {
+      continue;
+    }
+
+    // Dispatch all drag leave events first.
+    if (!hitTestRect(record.rect, event.clientX, event.clientY)) {
       record.entered = false;
       runDragLeave(record.handler, event, data);
+    }
+  }
+  for (let key in dropRegistry) {
+    // Fetch common variables.
+    let record = dropRegistry[key];
+    let handler = record.handler;
+
+    // Dispatch all other drag events.
+    if (hitTestRect(record.rect, event.clientX, event.clientY)) {
+        if (!record.entered) {
+          record.entered = true;
+          runDragEnter(record.handler, event, data);
+        }
+        if (action === DropHandlerAction.Drag) {
+          runDragOver(record.handler, event, data);
+        } else if (action === DropHandlerAction.Drop) {
+          runDrop(record.handler, event, data);
+        }
     }
   }
 }
