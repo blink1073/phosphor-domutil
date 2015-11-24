@@ -988,12 +988,15 @@ function invalidateCachedDropData(): void {
  * Run the relevant drop handlers for the given parameters.
  */
 function runDropHandlers(action: DropHandlerAction, event: MouseEvent, data: DragData): void {
+  // TODO handle z-order for overlapping drop targets.
+
+  // Refresh the client rects and run drag leave handlers.
   for (let key in dropRegistry) {
     // Fetch common variables.
     let record = dropRegistry[key];
     let handler = record.handler;
 
-    // Compute and cache the client drop rect if necessary.
+    // Refresh the client drop rect if necessary.
     if (!record.rect) {
       record.rect = handler.node.getBoundingClientRect();
     }
@@ -1003,28 +1006,35 @@ function runDropHandlers(action: DropHandlerAction, event: MouseEvent, data: Dra
       continue;
     }
 
-    // Dispatch all drag leave events first.
+    // Dispatch the drag leave event if necessary.
     if (!hitTestRect(record.rect, event.clientX, event.clientY)) {
       record.entered = false;
       runDragLeave(record.handler, event, data);
     }
   }
+
+  // Dispatch the rest of the relevant handlers.
   for (let key in dropRegistry) {
     // Fetch common variables.
     let record = dropRegistry[key];
     let handler = record.handler;
 
-    // Dispatch all other drag events.
-    if (hitTestRect(record.rect, event.clientX, event.clientY)) {
-        if (!record.entered) {
-          record.entered = true;
-          runDragEnter(record.handler, event, data);
-        }
-        if (action === DropHandlerAction.Drag) {
-          runDragOver(record.handler, event, data);
-        } else if (action === DropHandlerAction.Drop) {
-          runDrop(record.handler, event, data);
-        }
+    // Skip the non-relevant targets.
+    if (!hitTestRect(record.rect, event.clientX, event.clientY)) {
+      continue;
+    }
+
+    // Run the drag enter event if necessary.
+    if (!record.entered) {
+      record.entered = true;
+      runDragEnter(record.handler, event, data);
+    }
+
+    // Run the drag over or drop as needed.
+    if (action === DropHandlerAction.Drag) {
+      runDragOver(record.handler, event, data);
+    } else if (action === DropHandlerAction.Drop) {
+      runDrop(record.handler, event, data);
     }
   }
 }
