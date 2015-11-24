@@ -847,9 +847,10 @@ describe('phosphor-domutil', () => {
         let rect = node.getBoundingClientRect();
 
         let count = 0;
+        let content = '';
         handler.onDrag = () => { count++; };
 
-        handler.start(0, 0);
+        handler.start(0, 0, {});
 
         triggerMouseEvent(document.body, 'mousemove', {
           clientX: rect.left + DRAG_THRESHOLD - 1,
@@ -863,7 +864,40 @@ describe('phosphor-domutil', () => {
         handler.dispose();
       });
 
-      it('should ignore being called multiple times', () => {
+      it('should populate the drag data', () => {
+        let node = document.createElement('div');
+        let handler = new DragHandler(node, null);
+
+        node.style.position = 'absolute';
+        node.style.top = '0px';
+        node.style.left = '0px';
+        node.style.height = '100px';
+        node.style.width = '100px';
+
+        document.body.appendChild(node);
+
+        let rect = node.getBoundingClientRect();
+
+        let content = '';
+        handler.onDrag = (ev, data) => {
+          content = data.getData('text/plain');
+        };
+
+        handler.start(0, 0, { 'text/plain': 'foo' });
+
+        triggerMouseEvent(document.body, 'mousemove', {
+          clientX: rect.left + DRAG_THRESHOLD - 1,
+          clientY: rect.top
+        });
+
+        expect(content).to.be('foo');
+
+        triggerMouseEvent(document.body, 'mouseup');
+
+        handler.dispose();
+      });
+
+      it('should ignore if a drag is already started', () => {
         let node = document.createElement('div');
         let handler = new DragHandler(node, null);
 
@@ -878,58 +912,28 @@ describe('phosphor-domutil', () => {
         let rect = node.getBoundingClientRect();
 
         let count = 0;
-        let startX = -1;
-        let startY = -1;
-        handler.onDragStart = () => { count++; };
+        let content = '';
+        handler.onDrag = (ev, data) => {
+          count++;
+          content = data.getData('text/plain');
+        };
 
-        handler.start(0, 0);
-
-        triggerMouseEvent(document.body, 'mousemove', {
-          clientX: rect.left + DRAG_THRESHOLD - 1,
-          clientY: rect.top
-        });
-
-        handler.start(0, 0);
-
-        expect(count).to.be(1);
-
-        triggerMouseEvent(document.body, 'mouseup');
-
-        handler.dispose();
-      });
-
-      it('should ignore a mousedown if a drag has already started', () => {
-        let node = document.createElement('div');
-        let handler = new DragHandler(node, null);
-
-        node.style.position = 'absolute';
-        node.style.top = '0px';
-        node.style.left = '0px';
-        node.style.height = '100px';
-        node.style.width = '100px';
-
-        document.body.appendChild(node);
-
-        let rect = node.getBoundingClientRect();
-
-        let count = 0;
-        let startX = -1;
-        let startY = -1;
-        handler.onDragStart = () => { count++; };
-
-        handler.start(0, 0);
+        handler.start(0, 0, { 'text/plain': 'foo' });
 
         triggerMouseEvent(document.body, 'mousemove', {
           clientX: rect.left + DRAG_THRESHOLD - 1,
           clientY: rect.top
         });
 
-        triggerMouseEvent(node, 'mousedown', {
-          clientX: rect.left,
+        handler.start(0, 0, { 'text/plain': 'bar' });
+
+        triggerMouseEvent(document.body, 'mousemove', {
+          clientX: rect.left + DRAG_THRESHOLD - 2,
           clientY: rect.top
         });
 
-        expect(count).to.be(1);
+        expect(count).to.be(2);
+        expect(content).to.be('foo');
 
         triggerMouseEvent(document.body, 'mouseup');
 
