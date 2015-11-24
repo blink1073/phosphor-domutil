@@ -356,8 +356,10 @@ describe('phosphor-domutil', () => {
       it('should be invoked when a drag leaves a drop target', () => {
         let draggable = document.createElement('div');
         let droppable = document.createElement('div');
+        let droppableOverlap = document.createElement('div');
         let drag = new DragHandler(draggable, null);
         let drop = new DropHandler(droppable, null);
+        let dropOverlap = new DropHandler(droppableOverlap, null);
 
         draggable.style.position = 'absolute';
         draggable.style.top = '0px';
@@ -371,14 +373,32 @@ describe('phosphor-domutil', () => {
         droppable.style.height = '100px';
         droppable.style.width = '100px';
 
+        droppableOverlap.style.position = 'absolute';
+        droppableOverlap.style.top = '150px';
+        droppableOverlap.style.left = '225px';
+        droppableOverlap.style.height = '100px';
+        droppableOverlap.style.width = '100px';
+
         document.body.appendChild(draggable);
         document.body.appendChild(droppable);
+        document.body.appendChild(droppableOverlap);
 
         let dragRect = draggable.getBoundingClientRect();
         let dropRect = droppable.getBoundingClientRect();
+        let dropOverlapRect = droppableOverlap.getBoundingClientRect();
 
         let count = 0;
-        drop.onDragLeave = () => { count++; };
+        let leaveBeforeEnter = false;
+
+        drop.onDragLeave = () => {
+          count++;
+        };
+
+        dropOverlap.onDragEnter = () => {
+          if (count === 1) {
+            leaveBeforeEnter = true;
+          }
+        };
 
         triggerMouseEvent(draggable, 'mousedown', {
           clientX: dragRect.left,
@@ -409,16 +429,18 @@ describe('phosphor-domutil', () => {
         expect(count).to.be(0);
 
         triggerMouseEvent(document.body, 'mousemove', {
-          clientX: dragRect.left,
-          clientY: dragRect.top
+          clientX: dropRect.left + dropRect.width + 1,
+          clientY: dropOverlapRect.top
         });
 
         expect(count).to.be(1);
+        expect(leaveBeforeEnter).to.be(true);
 
         triggerMouseEvent(document.body, 'mouseup');
 
         drag.dispose();
         drop.dispose();
+        dropOverlap.dispose();
       });
 
     });
