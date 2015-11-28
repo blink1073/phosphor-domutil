@@ -45,9 +45,9 @@
     "url": "https://github.com/phosphorjs/phosphor-domutil.git"
   },
   "files": [
-    "lib/index.js",
-    "lib/index.css",
-    "lib/index.d.ts"
+    "lib/*.css",
+    "lib/*.d.ts",
+    "lib/*.js"
   ],
   "browserify": {
     "transform": [
